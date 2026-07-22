@@ -1,0 +1,6 @@
+{
+  "name": "Công an xã Chiềng Sinh - Hệ Thống Theo Dõi Tiến Độ Công Việc",
+  "description": "Quản lý công việc các Tổ công tác Công an xã Chiềng Sinh (Tổ Tổng hợp, Tổ An ninh, Tổ CSKV, Tổ PCTP, Tổ CSTT), tự động cảnh báo quá hạn màu đỏ, gửi thư đôn đốc và xuất báo cáo tự động tích hợp AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
