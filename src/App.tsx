@@ -28,6 +28,39 @@ import { ReportCenter } from './components/ReportCenter';
 import { sendTaskToGoogleSheets, fetchTasksFromGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
+// Helper to deduplicate tasks by code and id
+function deduplicateTasksList(taskList: Task[]): Task[] {
+  if (!Array.isArray(taskList)) return [];
+  const seenCodes = new Set<string>();
+  const seenIds = new Set<string>();
+  const result: Task[] = [];
+
+  for (const task of taskList) {
+    if (!task) continue;
+    const codeKey = (task.code || '').trim().toLowerCase();
+    const idKey = (task.id || '').trim().toLowerCase();
+
+    if (!codeKey && !idKey) {
+      result.push(task);
+      continue;
+    }
+
+    const isCodeDup = codeKey ? seenCodes.has(codeKey) : false;
+    const isIdDup = idKey ? seenIds.has(idKey) : false;
+
+    if (isCodeDup || isIdDup) {
+      continue;
+    }
+
+    if (codeKey) seenCodes.add(codeKey);
+    if (idKey) seenIds.add(idKey);
+
+    result.push(task);
+  }
+
+  return result;
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -54,14 +87,10 @@ export default function App() {
   const fetchAndSyncTasks = React.useCallback(async () => {
     const sheetTasks = await fetchTasksFromGoogleSheets();
     if (sheetTasks && sheetTasks.length > 0) {
-      setTasks(prevTasks => {
-        const sheetIds = new Set(sheetTasks.map(st => st.id));
-        const sheetCodes = new Set(sheetTasks.map(st => st.code));
-        const localOnly = prevTasks.filter(pt => !sheetIds.has(pt.id) && !sheetCodes.has(pt.code));
-        const merged = [...localOnly, ...sheetTasks];
-        saveTasks(merged);
-        return merged;
-      });
+      // Completely replace tasks state with Google Sheets data (no mock data)
+      const cleanTasks = deduplicateTasksList(sheetTasks);
+      setTasks(cleanTasks);
+      saveTasks(cleanTasks);
       console.log('✅ [App] Đã đồng bộ thành công danh sách công việc từ Google Sheets');
     }
   }, []);
@@ -131,7 +160,8 @@ export default function App() {
 
     if (taskData.id) {
       // Edit existing
-      updatedTasks = tasks.map(t => t.id === taskData.id ? { ...t, ...taskData } as Task : t);
+      const raw = tasks.map(t => (t.id === taskData.id || t.code === taskData.code) ? { ...t, ...taskData } as Task : t);
+      updatedTasks = deduplicateTasksList(raw);
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
       showToast(`✅ Đã cập nhật thông tin công việc [${taskData.code}] thành công!`);
@@ -141,9 +171,9 @@ export default function App() {
       // Create new
       const newTask = {
         ...taskData,
-        id: `task-${Date.now()}`
+        id: taskData.code ? taskData.code : `task-${Date.now()}`
       } as Task;
-      updatedTasks = [newTask, ...tasks];
+      updatedTasks = deduplicateTasksList([newTask, ...tasks]);
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
       showToast(`🎉 Đã giao công việc mới [${newTask.code}] và đã lưu vào Google Sheets!`);

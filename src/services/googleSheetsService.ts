@@ -7,11 +7,11 @@ export const GOOGLE_SHEETS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfy
  */
 export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<boolean> {
   try {
-    const codeVal = taskData.code ? String(taskData.code).trim() : '';
+    const codeVal = taskData.code ? String(taskData.code).trim() : (taskData.id || `task-${Date.now()}`);
 
     const payload = {
       action: 'createTask',
-      id: taskData.id || '',
+      id: codeVal,
       code: codeVal,
       'Mã CV': codeVal,
       'Mã công việc': codeVal,
@@ -161,10 +161,11 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
       .filter(item => item && typeof item === 'object')
       .map((item, index) => {
         const title = getVal(item, ['title', 'Tên công việc', 'Tên CV', 'Tiêu đề', 'Nội dung công việc', 'taskName', 'name']) || 'Công việc từ Google Sheets';
-        const rawCode = getVal(item, ['code', 'Mã CV', 'Mã công việc', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV']);
-        const defaultCode = `${252 + index}/KH-CAT-PV01`;
+        const rawCode = getVal(item, ['Mã công việc', 'Mã CV', 'code', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV', 'id', 'ID', 'Id', 'id_task']);
+        const defaultCode = `task-${Date.now()}-${index}`;
         const code = rawCode ? String(rawCode).trim() : defaultCode;
-        const id = getVal(item, ['id', 'ID', 'Id', 'id_task']) || `sheet-task-${index}-${Date.now()}`;
+        const idVal = getVal(item, ['id', 'ID', 'Id', 'id_task', 'Mã công việc', 'Mã CV', 'code']);
+        const id = idVal ? String(idVal).trim() : code;
         const description = getVal(item, ['description', 'Mô tả', 'Nội dung', 'Chi tiết', 'Mô tả công việc']) || '';
         
         const departmentName = String(getVal(item, ['departmentName', 'Phòng ban', 'Bộ phận', 'Đơn vị', 'Phòng/Ban', 'department']) || 'Tổ Tổng hợp').trim();
@@ -248,8 +249,22 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
         };
       });
 
-    console.log(`✅ [Google Sheets] Đã chuẩn hóa thành công ${tasks.length} công việc`);
-    return tasks;
+    // Deduplicate sheet items by code or id
+    const uniqueSheetTasks: Task[] = [];
+    const seenKeys = new Set<string>();
+
+    for (const t of tasks) {
+      const codeKey = (t.code || '').trim().toLowerCase();
+      const idKey = (t.id || '').trim().toLowerCase();
+      if (codeKey && seenKeys.has(codeKey)) continue;
+      if (idKey && seenKeys.has(idKey)) continue;
+      if (codeKey) seenKeys.add(codeKey);
+      if (idKey) seenKeys.add(idKey);
+      uniqueSheetTasks.push(t);
+    }
+
+    console.log(`✅ [Google Sheets] Đã chuẩn hóa thành công ${uniqueSheetTasks.length} công việc duy nhất`);
+    return uniqueSheetTasks;
   } catch (error) {
     console.error('❌ [Google Sheets] Lỗi khi tải dữ liệu từ Google Sheets:', error);
     return null;
