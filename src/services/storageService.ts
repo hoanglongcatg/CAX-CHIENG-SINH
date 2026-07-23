@@ -111,8 +111,70 @@ export function saveNotifications(notifs: NotificationItem[]): void {
 }
 
 // Compute aggregate statistics
+export function normalizeDeptString(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[()]/g, '');
+}
+
+export function matchDepartment(
+  taskDeptId?: string,
+  taskDeptName?: string,
+  targetDeptId?: string,
+  targetDeptName?: string
+): boolean {
+  if (!targetDeptId && !targetDeptName) return false;
+
+  // 1. Direct ID equality
+  if (taskDeptId && targetDeptId && taskDeptId.trim().toLowerCase() === targetDeptId.trim().toLowerCase()) {
+    return true;
+  }
+
+  const normTaskName = normalizeDeptString(taskDeptName || '');
+  const normTaskId = normalizeDeptString(taskDeptId || '');
+  const normTargetName = normalizeDeptString(targetDeptName || '');
+  const normTargetId = normalizeDeptString(targetDeptId || '');
+
+  const normTask = normTaskName || normTaskId;
+  const normTarget = normTargetName || normTargetId;
+
+  if (!normTask || !normTarget) return false;
+
+  if (normTask === normTarget) return true;
+
+  // Specific team keywords matching for Chiềng Sinh Police:
+  // 1. Tổ Tổng hợp: "tổng hợp", "tth", "dept-1"
+  if ((normTargetName.includes('tổng hợp') || normTargetId.includes('dept-1')) &&
+      (normTask.includes('tổng hợp') || normTask.includes('tth'))) return true;
+
+  // 2. Tổ An ninh: "an ninh", "tan", "dept-2"
+  if ((normTargetName.includes('an ninh') || normTargetId.includes('dept-2')) &&
+      (normTask.includes('an ninh') || normTask.includes('tan'))) return true;
+
+  // 3. Tổ CSKV (Cảnh sát khu vực): "cskv", "cảnh sát khu vực", "dept-3"
+  if ((normTargetName.includes('cskv') || normTargetName.includes('cảnh sát khu vực') || normTargetId.includes('dept-3')) &&
+      (normTask.includes('cskv') || normTask.includes('cảnh sát khu vực'))) return true;
+
+  // 4. Tổ PCTP (Phòng chống tội phạm): "pctp", "phòng chống tội phạm", "tội phạm", "dept-4"
+  if ((normTargetName.includes('pctp') || normTargetName.includes('phòng chống tội phạm') || normTargetId.includes('dept-4')) &&
+      (normTask.includes('pctp') || normTask.includes('phòng chống tội phạm') || normTask.includes('tội phạm'))) return true;
+
+  // 5. Tổ CSTT (Cảnh sát trật tự): "cstt", "cảnh sát trật tự", "trật tự", "dept-5"
+  if ((normTargetName.includes('cstt') || normTargetName.includes('cảnh sát trật tự') || normTargetId.includes('dept-5')) &&
+      (normTask.includes('cstt') || normTask.includes('cảnh sát trật tự') || normTask.includes('trật tự'))) return true;
+
+  // Fallback containment
+  if (normTask.includes(normTargetName) || normTargetName.includes(normTask)) return true;
+
+  return false;
+}
+
 export function calculateTaskStats(tasks: Task[]): TaskStats {
-  const total = tasks.length;
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const total = safeTasks.length;
   if (total === 0) {
     return {
       total: 0, completed: 0, inProgress: 0, todo: 0, onHold: 0, overdue: 0, dueSoon: 0, completionRate: 0, overdueRate: 0
@@ -127,16 +189,27 @@ export function calculateTaskStats(tasks: Task[]): TaskStats {
   let overdue = 0;
   let dueSoon = 0;
 
-  tasks.forEach(t => {
-    if (t.status === 'completed') completed++;
-    else if (t.status === 'on_hold') onHold++;
-    else if (t.dueDate < today) overdue++;
-    else {
-      if (t.status === 'in_progress') inProgress++;
-      else todo++;
+  safeTasks.forEach(t => {
+    if (!t) return;
+    const taskDueDate = t.dueDate || today;
+    const isOverdue = t.status === 'overdue' || (taskDueDate < today && t.status !== 'completed' && t.status !== 'on_hold');
 
-      const days = getDaysDifference(t.dueDate);
-      if (days >= 0 && days <= 2) {
+    if (t.status === 'completed') {
+      completed++;
+    } else if (t.status === 'on_hold') {
+      onHold++;
+    } else if (isOverdue) {
+      overdue++;
+    } else if (t.status === 'in_progress') {
+      inProgress++;
+      const days = getDaysDifference(taskDueDate);
+      if (!isNaN(days) && days >= 0 && days <= 2) {
+        dueSoon++;
+      }
+    } else {
+      todo++;
+      const days = getDaysDifference(taskDueDate);
+      if (!isNaN(days) && days >= 0 && days <= 2) {
         dueSoon++;
       }
     }
@@ -159,19 +232,32 @@ export function calculateTaskStats(tasks: Task[]): TaskStats {
 }
 
 export function calculateDepartmentStats(tasks: Task[], depts: Department[]): DepartmentStats[] {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeDepts = Array.isArray(depts) && depts.length > 0 ? depts : INITIAL_DEPARTMENTS;
   const today = getTodayString();
 
-  return depts.map(dept => {
-    const deptTasks = tasks.filter(t => t.departmentId === dept.id);
+  return safeDepts.map(dept => {
+    const deptTasks = safeTasks.filter(t => {
+      if (!t) return false;
+      return matchDepartment(t.departmentId, t.departmentName, dept.id, dept.name);
+    });
+
     const total = deptTasks.length;
     let completed = 0;
     let inProgress = 0;
     let overdue = 0;
 
     deptTasks.forEach(t => {
-      if (t.status === 'completed') completed++;
-      else if (t.dueDate < today && t.status !== 'on_hold') overdue++;
-      else if (t.status === 'in_progress') inProgress++;
+      const taskDueDate = t.dueDate || today;
+      const isOverdue = t.status === 'overdue' || (taskDueDate < today && t.status !== 'completed' && t.status !== 'on_hold');
+
+      if (t.status === 'completed') {
+        completed++;
+      } else if (isOverdue) {
+        overdue++;
+      } else {
+        inProgress++;
+      }
     });
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;

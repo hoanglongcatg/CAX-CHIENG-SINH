@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Task, Department, TaskStats, DepartmentStats } from '../types';
 import { 
+  matchDepartment, 
+  calculateTaskStats, 
+  calculateDepartmentStats, 
+  getTodayString 
+} from '../services/storageService';
+import { 
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
@@ -49,8 +55,8 @@ const STATUS_COLORS = {
 export const Dashboard: React.FC<DashboardProps> = ({
   tasks,
   departments,
-  stats,
-  departmentStats,
+  stats: initialStats,
+  departmentStats: initialDeptStats,
   onSelectTask,
   onSendReminderEmail,
   onNavigateToTable,
@@ -58,25 +64,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('all');
 
-  // Filter tasks based on selected department
-  const filteredTasks = selectedDeptId === 'all' 
-    ? tasks 
-    : tasks.filter(t => t.departmentId === selectedDeptId);
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeDepts = Array.isArray(departments) ? departments : [];
 
+  const selectedDeptObj = safeDepts.find(d => d.id === selectedDeptId);
+
+  // Filter tasks based on selected department using normalized matching
+  const filteredTasks = selectedDeptId === 'all' 
+    ? safeTasks 
+    : safeTasks.filter(t => t && matchDepartment(t.departmentId, t.departmentName, selectedDeptId, selectedDeptObj?.name));
+
+  // Compute stats directly from tasks for real-time reactivity
+  const currentStats = selectedDeptId === 'all' 
+    ? calculateTaskStats(safeTasks) 
+    : calculateTaskStats(filteredTasks);
+
+  const currentDeptStats = calculateDepartmentStats(safeTasks, safeDepts);
+
+  const todayStr = getTodayString();
   // Extract overdue tasks
-  const overdueTasks = filteredTasks.filter(t => t.status === 'overdue');
+  const overdueTasks = filteredTasks.filter(t => {
+    if (!t) return false;
+    const taskDueDate = t.dueDate || todayStr;
+    return t.status === 'overdue' || (taskDueDate < todayStr && t.status !== 'completed' && t.status !== 'on_hold');
+  });
 
   // Chart Data: Status Pie Chart
   const statusPieData = [
-    { name: 'Đã hoàn thành', value: stats.completed, color: STATUS_COLORS.completed },
-    { name: 'Đang thực hiện', value: stats.inProgress, color: STATUS_COLORS.in_progress },
-    { name: 'Chưa thực hiện', value: stats.todo, color: STATUS_COLORS.todo },
-    { name: 'Tạm hoãn', value: stats.onHold, color: STATUS_COLORS.on_hold },
-    { name: 'Quá hạn (Đỏ)', value: stats.overdue, color: STATUS_COLORS.overdue }
+    { name: 'Đã hoàn thành', value: currentStats.completed, color: STATUS_COLORS.completed },
+    { name: 'Đang thực hiện', value: currentStats.inProgress, color: STATUS_COLORS.in_progress },
+    { name: 'Chưa thực hiện', value: currentStats.todo, color: STATUS_COLORS.todo },
+    { name: 'Tạm hoãn', value: currentStats.onHold, color: STATUS_COLORS.on_hold },
+    { name: 'Quá hạn (Đỏ)', value: currentStats.overdue, color: STATUS_COLORS.overdue }
   ].filter(item => item.value > 0);
 
   // Chart Data: Department Bar Chart
-  const deptBarData = departmentStats.map(ds => ({
+  const deptBarData = currentDeptStats.map(ds => ({
     name: ds.departmentName.length > 22 ? ds.departmentName.substring(0, 20) + '...' : ds.departmentName,
     'Hoàn thành': ds.completed,
     'Đang làm': ds.inProgress,
@@ -203,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">TỔNG SỐ CÔNG VIỆC</p>
-            <h2 className="text-3xl font-extrabold text-slate-900 mt-1">{stats.total}</h2>
+            <h2 className="text-3xl font-extrabold text-slate-900 mt-1">{currentStats.total}</h2>
             <p className="text-xs text-slate-500 mt-1">Đang được quản lý hệ thống</p>
           </div>
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold">
@@ -216,9 +239,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ĐÃ HOÀN THÀNH</p>
             <div className="flex items-baseline space-x-2 mt-1">
-              <h2 className="text-3xl font-extrabold text-emerald-600">{stats.completed}</h2>
+              <h2 className="text-3xl font-extrabold text-emerald-600">{currentStats.completed}</h2>
               <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                {stats.completionRate}% Đạt
+                {currentStats.completionRate}% Đạt
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">Nhiệm vụ đúng tiến độ bàn giao</p>
@@ -232,8 +255,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ĐANG THỰC HIỆN</p>
-            <h2 className="text-3xl font-extrabold text-blue-600 mt-1">{stats.inProgress}</h2>
-            <p className="text-xs text-slate-500 mt-1">Trong hạn xử lý ({stats.dueSoon} việc sắp đến hạn)</p>
+            <h2 className="text-3xl font-extrabold text-blue-600 mt-1">{currentStats.inProgress}</h2>
+            <p className="text-xs text-slate-500 mt-1">Trong hạn xử lý ({currentStats.dueSoon} việc sắp đến hạn)</p>
           </div>
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
             <Clock className="w-6 h-6" />
@@ -242,30 +265,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Overdue Red Card */}
         <div className={`rounded-xl p-5 border shadow-sm flex items-center justify-between transition-all ${
-          stats.overdue > 0 
+          currentStats.overdue > 0 
             ? 'bg-red-600 text-white border-red-700 shadow-red-200' 
             : 'bg-white text-slate-900 border-slate-200'
         }`}>
           <div>
             <p className={`text-xs font-semibold uppercase tracking-wider ${
-              stats.overdue > 0 ? 'text-red-100' : 'text-slate-500'
+              currentStats.overdue > 0 ? 'text-red-100' : 'text-slate-500'
             }`}>
               CẢNH BÁO QUÁ HẠN
             </p>
             <div className="flex items-baseline space-x-2 mt-1">
-              <h2 className="text-3xl font-extrabold">{stats.overdue}</h2>
-              {stats.overdue > 0 && (
+              <h2 className="text-3xl font-extrabold">{currentStats.overdue}</h2>
+              {currentStats.overdue > 0 && (
                 <span className="text-xs font-extrabold bg-white text-red-700 px-2 py-0.5 rounded-full animate-pulse">
-                  {stats.overdueRate}% Tỷ lệ
+                  {currentStats.overdueRate}% Tỷ lệ
                 </span>
               )}
             </div>
-            <p className={`text-xs mt-1 ${stats.overdue > 0 ? 'text-red-100' : 'text-slate-500'}`}>
+            <p className={`text-xs mt-1 ${currentStats.overdue > 0 ? 'text-red-100' : 'text-slate-500'}`}>
               Cần lãnh đạo đôn đốc ngay
             </p>
           </div>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-            stats.overdue > 0 ? 'bg-red-700 text-white' : 'bg-red-50 text-red-600'
+            currentStats.overdue > 0 ? 'bg-red-700 text-white' : 'bg-red-50 text-red-600'
           }`}>
             <AlertTriangle className="w-6 h-6" />
           </div>
@@ -338,8 +361,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-            <span>Tỷ lệ quá hạn đỏ: <strong className="text-red-600">{stats.overdueRate}%</strong></span>
-            <span>Tỷ lệ hoàn thành: <strong className="text-emerald-600">{stats.completionRate}%</strong></span>
+            <span>Tỷ lệ quá hạn đỏ: <strong className="text-red-600">{currentStats.overdueRate}%</strong></span>
+            <span>Tỷ lệ hoàn thành: <strong className="text-emerald-600">{currentStats.completionRate}%</strong></span>
           </div>
         </div>
       </div>
@@ -377,7 +400,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {departmentStats.map((ds) => (
+              {currentDeptStats.map((ds) => (
                 <tr key={ds.departmentId} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3.5 px-4 font-semibold text-slate-800">
                     {ds.departmentName}

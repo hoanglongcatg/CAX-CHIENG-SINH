@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Task, Department, TaskStats } from '../types';
-import { calculateTaskStats, getTodayString } from '../services/storageService';
+import { calculateTaskStats, getTodayString, matchDepartment } from '../services/storageService';
 import * as XLSX from 'xlsx';
 import { 
   FileSpreadsheet, 
@@ -34,14 +34,17 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
 
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeDepts = Array.isArray(departments) ? departments : [];
+  const selectedDeptObj = safeDepts.find(d => d.id === selectedDeptId);
+
   // Filter tasks according to department
   const filteredTasks = selectedDeptId === 'all'
-    ? tasks
-    : tasks.filter(t => t.departmentId === selectedDeptId);
+    ? safeTasks
+    : safeTasks.filter(t => t && matchDepartment(t.departmentId, t.departmentName, selectedDeptId, selectedDeptObj?.name));
 
   const stats = calculateTaskStats(filteredTasks);
   const overdueTasks = filteredTasks.filter(t => t.status === 'overdue' || (t.dueDate < getTodayString() && t.status !== 'completed'));
-  const selectedDeptObj = departments.find(d => d.id === selectedDeptId);
 
   // Call Gemini API server backend
   const handleGenerateAiReport = async () => {

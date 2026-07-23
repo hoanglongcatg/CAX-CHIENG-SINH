@@ -151,8 +151,17 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
         const id = getVal(item, ['id', 'ID', 'Id', 'id_task']) || `sheet-task-${index}-${Date.now()}`;
         const description = getVal(item, ['description', 'Mô tả', 'Nội dung', 'Chi tiết', 'Mô tả công việc']) || '';
         
-        const departmentName = getVal(item, ['departmentName', 'Phòng ban', 'Bộ phận', 'Đơn vị', 'Phòng/Ban', 'department']) || 'Bộ phận tổng hợp';
-        const departmentId = getVal(item, ['departmentId', 'Mã phòng ban', 'Mã bộ phận']) || 'dept-1';
+        const departmentName = String(getVal(item, ['departmentName', 'Phòng ban', 'Bộ phận', 'Đơn vị', 'Phòng/Ban', 'department']) || 'Tổ Tổng hợp').trim();
+        let departmentId = String(getVal(item, ['departmentId', 'Mã phòng ban', 'Mã bộ phận']) || '').trim();
+
+        if (!departmentId || departmentId === 'dept-1') {
+          const norm = departmentName.toLowerCase();
+          if (norm.includes('an ninh') || norm.includes('tan')) departmentId = 'dept-2';
+          else if (norm.includes('cskv') || norm.includes('cảnh sát khu vực')) departmentId = 'dept-3';
+          else if (norm.includes('pctp') || norm.includes('tội phạm')) departmentId = 'dept-4';
+          else if (norm.includes('cstt') || norm.includes('trật tự')) departmentId = 'dept-5';
+          else departmentId = 'dept-1';
+        }
         
         const assigneeName = getVal(item, ['assigneeName', 'Cán bộ', 'Cán bộ thực hiện', 'Người thực hiện', 'Người xử lý', 'Phân công', 'Cán bộ đảm nhận', 'assignee']) || 'Cán bộ đảm nhận';
         const assigneeEmail = getVal(item, ['assigneeEmail', 'Email cán bộ', 'Email người thực hiện', 'Email']) || '';
