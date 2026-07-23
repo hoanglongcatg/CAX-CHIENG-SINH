@@ -82,7 +82,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     const matchesSearch = 
       (task.title || '').toLowerCase().includes(searchLower) ||
       (task.code || '').toLowerCase().includes(searchLower) ||
-      (task.assigneeName || '').toLowerCase().includes(searchLower) ||
+      (task.assigneeName || (task as any).assignee || '').toLowerCase().includes(searchLower) ||
       (task.deliverable || '').toLowerCase().includes(searchLower);
 
     // Dept filter
@@ -324,7 +324,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </div>
                         <div className="flex items-center space-x-1 text-slate-800">
                           <User className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <span className="font-semibold">{task.assigneeName || 'Chưa phân công'}</span>
+                          <span className="font-semibold">{task.assigneeName || (task as any).assignee || 'Cán bộ chưa phân công'}</span>
                         </div>
                       </td>
 

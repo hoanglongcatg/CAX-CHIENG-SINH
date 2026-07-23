@@ -94,7 +94,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
             <div className="bg-slate-50 p-3 rounded-lg border">
               <span className="text-slate-500 font-medium block">Cán bộ phụ trách:</span>
-              <strong className="text-slate-900 text-sm">{task.assigneeName}</strong>
+              <strong className="text-slate-900 text-sm">{task.assigneeName || (task as any).assignee || 'Cán bộ chưa phân công'}</strong>
               <p className="text-[11px] text-blue-600 font-mono">{task.assigneeEmail}</p>
             </div>
 

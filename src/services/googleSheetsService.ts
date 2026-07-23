@@ -160,15 +160,15 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
     const tasks: Task[] = rawList
       .filter(item => item && typeof item === 'object')
       .map((item, index) => {
-        const title = getVal(item, ['title', 'Tên công việc', 'Tên CV', 'Tiêu đề', 'Nội dung công việc', 'taskName', 'name']) || 'Công việc từ Google Sheets';
-        const rawCode = getVal(item, ['Mã công việc', 'Mã CV', 'code', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV', 'id', 'ID', 'Id', 'id_task']);
+        const title = getVal(item, ['Tên công việc', 'Tên CV', 'title', 'Tiêu đề', 'Nội dung công việc', 'Nội dung', 'taskName', 'name', '1', 'colB', 'col_B', 'B']) || 'Công việc từ Google Sheets';
+        const rawCode = getVal(item, ['Mã công việc', 'Mã CV', 'code', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV', 'id', 'ID', 'Id', 'id_task', '0', 'colA', 'col_A', 'A']);
         const defaultCode = `task-${Date.now()}-${index}`;
         const code = rawCode ? String(rawCode).trim() : defaultCode;
         const idVal = getVal(item, ['id', 'ID', 'Id', 'id_task', 'Mã công việc', 'Mã CV', 'code']);
         const id = idVal ? String(idVal).trim() : code;
         const description = getVal(item, ['description', 'Mô tả', 'Nội dung', 'Chi tiết', 'Mô tả công việc']) || '';
         
-        const departmentName = String(getVal(item, ['departmentName', 'Phòng ban', 'Bộ phận', 'Đơn vị', 'Phòng/Ban', 'department']) || 'Tổ Tổng hợp').trim();
+        const departmentName = String(getVal(item, ['Bộ phận', 'Phòng ban', 'departmentName', 'Đơn vị', 'Phòng/Ban', 'department', 'Tổ', '2', 'colC', 'col_C', 'C']) || 'Tổ Tổng hợp').trim();
         let departmentId = String(getVal(item, ['departmentId', 'Mã phòng ban', 'Mã bộ phận']) || '').trim();
 
         if (!departmentId || departmentId === 'dept-1') {
@@ -180,12 +180,27 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
           else departmentId = 'dept-1';
         }
         
-        const assigneeName = getVal(item, ['assigneeName', 'Cán bộ', 'Cán bộ thực hiện', 'Người thực hiện', 'Người xử lý', 'Phân công', 'Cán bộ đảm nhận', 'assignee']) || 'Cán bộ đảm nhận';
+        const assigneeVal = getVal(item, [
+          'Cán bộ phụ trách',
+          'Cán bộ',
+          'Người thực hiện',
+          'Cán bộ thực hiện',
+          'Cán bộ đảm nhận',
+          'Người xử lý',
+          'Phân công',
+          'assigneeName',
+          'assignee',
+          '3',
+          'colD',
+          'col_D',
+          'D'
+        ]);
+        const assigneeName = assigneeVal ? String(assigneeVal).trim() : 'Cán bộ chưa phân công';
         const assigneeEmail = getVal(item, ['assigneeEmail', 'Email cán bộ', 'Email người thực hiện', 'Email']) || '';
         const assignerName = getVal(item, ['assignerName', 'Người giao', 'Lãnh đạo giao', 'Ban chỉ huy', 'assigner']) || 'Ban Chỉ huy CAX';
         
         const startDate = formatDate(getVal(item, ['startDate', 'Ngày bắt đầu', 'Bắt đầu', 'Start Date']));
-        const dueDate = formatDate(getVal(item, ['dueDate', 'Thời hạn', 'Hạn hoàn thành', 'Ngày hoàn thành', 'Hạn xử lý', 'Due Date']));
+        const dueDate = formatDate(getVal(item, ['Thời hạn', 'dueDate', 'Hạn hoàn thành', 'Ngày hoàn thành', 'Hạn xử lý', 'Due Date', 'Hạn', '4', 'colE', 'col_E', 'E']));
 
         // Priority normalization
         const rawPriority = String(getVal(item, ['priority', 'Độ ưu tiên', 'Ưu tiên', 'Mức độ']) || 'normal').toLowerCase();
@@ -201,7 +216,7 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
         }
 
         // Status normalization
-        const rawStatus = String(getVal(item, ['status', 'Trạng thái', 'Tình trạng']) || 'todo').toLowerCase();
+        const rawStatus = String(getVal(item, ['Trạng thái', 'status', 'Tình trạng', '6', 'colG', 'col_G', 'G']) || 'todo').toLowerCase();
         let status: Task['status'] = 'todo';
         if (rawStatus.includes('hoàn thành') || rawStatus.includes('completed') || rawStatus.includes('xong') || rawStatus.includes('done')) {
           status = 'completed';
@@ -216,7 +231,7 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
         }
 
         // Progress parsing
-        const rawProgress = getVal(item, ['progress', 'Tiến độ', 'Tiến độ (%)', '% hoàn thành', 'Tỷ lệ']);
+        const rawProgress = getVal(item, ['Tiến độ', 'Tiến độ (%)', '% hoàn thành', 'progress', 'Tỷ lệ', '5', 'colF', 'col_F', 'F']);
         let progressNum = 0;
         if (rawProgress !== undefined && rawProgress !== null) {
           const parsed = parseFloat(String(rawProgress).replace(/[^0-9.]/g, ''));
