@@ -54,8 +54,14 @@ export default function App() {
   const fetchAndSyncTasks = React.useCallback(async () => {
     const sheetTasks = await fetchTasksFromGoogleSheets();
     if (sheetTasks && sheetTasks.length > 0) {
-      setTasks(sheetTasks);
-      saveTasks(sheetTasks);
+      setTasks(prevTasks => {
+        const sheetIds = new Set(sheetTasks.map(st => st.id));
+        const sheetCodes = new Set(sheetTasks.map(st => st.code));
+        const localOnly = prevTasks.filter(pt => !sheetIds.has(pt.id) && !sheetCodes.has(pt.code));
+        const merged = [...localOnly, ...sheetTasks];
+        saveTasks(merged);
+        return merged;
+      });
       console.log('✅ [App] Đã đồng bộ thành công danh sách công việc từ Google Sheets');
     }
   }, []);
@@ -126,8 +132,10 @@ export default function App() {
     if (taskData.id) {
       // Edit existing
       updatedTasks = tasks.map(t => t.id === taskData.id ? { ...t, ...taskData } as Task : t);
+      setTasks(updatedTasks);
+      saveTasks(updatedTasks);
       showToast(`✅ Đã cập nhật thông tin công việc [${taskData.code}] thành công!`);
-      // Optionally sync edits to Google Sheets as well
+      // Sync edits to Google Sheets
       sendTaskToGoogleSheets({ ...taskData });
     } else {
       // Create new
@@ -136,15 +144,17 @@ export default function App() {
         id: `task-${Date.now()}`
       } as Task;
       updatedTasks = [newTask, ...tasks];
+      setTasks(updatedTasks);
+      saveTasks(updatedTasks);
       showToast(`🎉 Đã giao công việc mới [${newTask.code}] và đã lưu vào Google Sheets!`);
 
       // Post to Google Sheets Web App
       sendTaskToGoogleSheets(newTask);
 
-      // Auto refresh task list from Google Sheets
+      // Refresh from Google Sheets after a short delay
       setTimeout(() => {
         fetchAndSyncTasks();
-      }, 1200);
+      }, 3000);
 
       // Auto create assignment email notification
       const newNotif: NotificationItem = {
@@ -167,9 +177,6 @@ export default function App() {
       setNotifications(updatedNotifs);
       saveNotifications(updatedNotifs);
     }
-
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
   };
 
   const handleDeleteTask = (taskId: string) => {

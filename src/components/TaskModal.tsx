@@ -55,6 +55,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [offPhone, setOffPhone] = useState('');
   const [offDeptId, setOffDeptId] = useState('');
 
+  const [assigneeNameInput, setAssigneeNameInput] = useState('');
+
+  // Department suffix helper
+  const getDeptSuffix = (dId: string, dName?: string): string => {
+    const norm = (dName || '').toLowerCase();
+    if (norm.includes('an ninh') || dId === 'dept-2') return 'PA03';
+    if (norm.includes('cskv') || norm.includes('khu vực') || dId === 'dept-3') return 'PC02';
+    if (norm.includes('pctp') || norm.includes('tội phạm') || dId === 'dept-4') return 'PC02';
+    if (norm.includes('cstt') || norm.includes('trật tự') || dId === 'dept-5') return 'PV01';
+    return 'PV01';
+  };
+
+  const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
+
   // Populate data when editing or creating
   useEffect(() => {
     if (taskToEdit) {
@@ -63,6 +77,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setDescription(taskToEdit.description);
       setDepartmentId(taskToEdit.departmentId);
       setAssigneeId(taskToEdit.assigneeId);
+      setAssigneeNameInput(taskToEdit.assigneeName || '');
       setAssignerName(taskToEdit.assignerName || 'Trưởng Công an xã Chiềng Sinh');
       setStartDate(taskToEdit.startDate);
       setDueDate(taskToEdit.dueDate);
@@ -72,17 +87,21 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setDeliverable(taskToEdit.deliverable || '');
       setNotes(taskToEdit.notes || '');
     } else {
-      // Auto code e.g. 252/KH-CAT-PV01
-      const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
-      const nextNum = 252 + totalCount;
-      const autoCode = `${nextNum}/KH-CAT-PV01`;
+      // Auto code e.g. 252/KH-PA03
+      const defaultDept = departments[0]?.id || '';
+      const defaultDeptObj = departments.find(d => d.id === defaultDept);
+      const suffix = getDeptSuffix(defaultDept, defaultDeptObj?.name);
+      const autoCode = `${252 + totalCount}/KH-${suffix}`;
+      
       setCode(autoCode);
       setTitle('');
       setDescription('');
-      const defaultDept = departments[0]?.id || '';
       setDepartmentId(defaultDept);
-      const defaultOff = officers.find(o => o.departmentId === defaultDept)?.id || officers[0]?.id || '';
-      setAssigneeId(defaultOff);
+
+      const defaultOff = officers.find(o => o.departmentId === defaultDept) || officers[0];
+      setAssigneeId(defaultOff?.id || '');
+      setAssigneeNameInput(defaultOff?.name || 'Cán bộ thụ lý');
+
       setStartDate(today);
       
       // Default due date +7 days
@@ -102,14 +121,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const availableOfficers = officers.filter(o => o.departmentId === departmentId);
   const selectedOfficer = officers.find(o => o.id === assigneeId);
 
-  // When department changes, set first officer
+  // When department changes, set first officer and update code format
   const handleDepartmentChange = (deptId: string) => {
     setDepartmentId(deptId);
+    const deptObj = departments.find(d => d.id === deptId);
+    
+    if (!taskToEdit) {
+      const suffix = getDeptSuffix(deptId, deptObj?.name);
+      setCode(`${252 + totalCount}/KH-${suffix}`);
+    }
+
     const matching = officers.filter(o => o.departmentId === deptId);
     if (matching.length > 0) {
       setAssigneeId(matching[0].id);
+      setAssigneeNameInput(matching[0].name);
     } else {
       setAssigneeId('');
+      setAssigneeNameInput('');
+    }
+  };
+
+  // When officer dropdown selection changes
+  const handleOfficerChange = (offId: string) => {
+    setAssigneeId(offId);
+    const off = officers.find(o => o.id === offId);
+    if (off) {
+      setAssigneeNameInput(off.name);
     }
   };
 
@@ -196,8 +233,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const selectedDept = departments.find(d => d.id === departmentId);
     const selectedOff = officers.find(o => o.id === assigneeId);
 
-    const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
     const fallbackCode = `${252 + totalCount}/KH-CAT-PV01`;
+    const finalAssigneeName = assigneeNameInput.trim() || selectedOff?.name || 'Cán bộ thụ lý';
 
     onSave({
       id: taskToEdit?.id,
@@ -207,7 +244,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       departmentId,
       departmentName: selectedDept?.name || 'Chưa phân công',
       assigneeId,
-      assigneeName: selectedOff ? selectedOff.name : 'Cán bộ thụ lý',
+      assigneeName: finalAssigneeName,
       assigneeEmail: selectedOff ? selectedOff.email : (selectedDept?.email || 'canbo@congan.sonla.gov.vn'),
       assignerName,
       startDate,
@@ -334,8 +371,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
               <select
                 value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                required
+                onChange={(e) => handleOfficerChange(e.target.value)}
                 className="w-full p-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
               >
                 {availableOfficers.map(o => (
@@ -345,6 +381,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <option value="">Lãnh đạo Tổ công tác phụ trách</option>
                 )}
               </select>
+              <div className="mt-1.5">
+                <input
+                  type="text"
+                  placeholder="Nhập tên Cán bộ đảm nhận..."
+                  value={assigneeNameInput}
+                  onChange={(e) => setAssigneeNameInput(e.target.value)}
+                  required
+                  className="w-full p-2 rounded-lg border border-slate-300 bg-white font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               {selectedOfficer && (
                 <p className="text-[11px] text-slate-500 mt-1 truncate">
                   📧 Email: <span className="font-mono text-slate-700">{selectedOfficer.email}</span> | 📞 SĐT: {selectedOfficer.phone}
