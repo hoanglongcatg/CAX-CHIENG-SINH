@@ -29,6 +29,11 @@ import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleAuthChange = React.useCallback((isAuth: boolean) => {
+    setIsLoggedIn(isAuth);
+  }, []);
 
   // Core Data States
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -245,6 +250,7 @@ export default function App() {
           setIsTaskModalOpen(true);
         }}
         unreadNotifsCount={unreadNotifsCount}
+        onAuthChange={handleAuthChange}
       />
 
       {/* Main Container */}
@@ -278,6 +284,7 @@ export default function App() {
               setTaskToEdit(null);
               setIsTaskModalOpen(true);
             }}
+            isLoggedIn={isLoggedIn}
           />
         )}
 

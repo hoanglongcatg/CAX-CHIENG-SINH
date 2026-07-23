@@ -28,6 +28,7 @@ interface TaskListProps {
   onSendReminderEmail: (task: Task) => void;
   onUpdateProgress: (taskId: string, newProgress: number, newNotes?: string) => void;
   onOpenCreateModal: () => void;
+  isLoggedIn?: boolean;
 }
 
 const PRIORITY_LABELS: Record<TaskPriority, { label: string; bg: string; text: string }> = {
@@ -45,7 +46,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDeleteTask,
   onSendReminderEmail,
   onUpdateProgress,
-  onOpenCreateModal
+  onOpenCreateModal,
+  isLoggedIn = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('all');
@@ -113,12 +115,14 @@ export const TaskList: React.FC<TaskListProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={onOpenCreateModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-lg shadow transition-all cursor-pointer flex items-center space-x-2 self-start sm:self-auto"
-          >
-            <span>+ Giao công việc mới</span>
-          </button>
+          {isLoggedIn && (
+            <button
+              onClick={onOpenCreateModal}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-lg shadow transition-all cursor-pointer flex items-center space-x-2 self-start sm:self-auto"
+            >
+              <span>+ Giao công việc mới</span>
+            </button>
+          )}
         </div>
 
         {/* Filter Inputs Grid */}

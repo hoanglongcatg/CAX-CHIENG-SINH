@@ -49,6 +49,7 @@ interface NavbarProps {
   stats: TaskStats;
   onOpenCreateModal: () => void;
   unreadNotifsCount: number;
+  onAuthChange?: (isLoggedIn: boolean) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -56,7 +57,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectView,
   stats,
   onOpenCreateModal,
-  unreadNotifsCount
+  unreadNotifsCount,
+  onAuthChange
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [policeUser, setPoliceUser] = useState<CustomPoliceUser | null>(null);
@@ -106,6 +108,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     return () => unsubscribe();
   }, []);
+
+  // Notify parent component about auth state safely
+  useEffect(() => {
+    const isAuth = !!policeUser || !!user;
+    queueMicrotask(() => {
+      onAuthChange?.(isAuth);
+    });
+  }, [policeUser, user, onAuthChange]);
 
   // Police Login Handler
   const handlePoliceLogin = (e: React.FormEvent) => {
@@ -262,14 +272,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Create Task Button */}
-            <button
-              onClick={onOpenCreateModal}
-              className="flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Giao việc mới</span>
-            </button>
+            {/* Create Task Button - Only rendered when logged in */}
+            {(policeUser || user) && (
+              <button
+                onClick={onOpenCreateModal}
+                className="flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Giao việc mới</span>
+              </button>
+            )}
 
             {/* Police / Gmail Authentication Button or Logged In Badge */}
             {policeUser ? (
