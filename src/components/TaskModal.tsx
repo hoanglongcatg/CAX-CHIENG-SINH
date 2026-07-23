@@ -72,10 +72,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setDeliverable(taskToEdit.deliverable || '');
       setNotes(taskToEdit.notes || '');
     } else {
-      // Auto code CV-001, CV-002...
+      // Auto code e.g. 252/KH-CAT-PV01
       const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
-      const nextNum = totalCount + 1;
-      const autoCode = `CV-${String(nextNum).padStart(3, '0')}`;
+      const nextNum = 252 + totalCount;
+      const autoCode = `${nextNum}/KH-CAT-PV01`;
       setCode(autoCode);
       setTitle('');
       setDescription('');
@@ -197,7 +197,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const selectedOff = officers.find(o => o.id === assigneeId);
 
     const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
-    const fallbackCode = `CV-${String(totalCount + 1).padStart(3, '0')}`;
+    const fallbackCode = `${252 + totalCount}/KH-CAT-PV01`;
 
     onSave({
       id: taskToEdit?.id,
@@ -257,6 +257,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <label className="font-semibold text-slate-700 block mb-1">Mã công việc *</label>
               <input
                 type="text"
+                placeholder="Ví dụ: 252/KH-CAT-PV01"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required

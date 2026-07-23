@@ -162,7 +162,7 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
       .map((item, index) => {
         const title = getVal(item, ['title', 'Tên công việc', 'Tên CV', 'Tiêu đề', 'Nội dung công việc', 'taskName', 'name']) || 'Công việc từ Google Sheets';
         const rawCode = getVal(item, ['code', 'Mã CV', 'Mã công việc', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV']);
-        const defaultCode = `CV-${String(index + 1).padStart(3, '0')}`;
+        const defaultCode = `${252 + index}/KH-CAT-PV01`;
         const code = rawCode ? String(rawCode).trim() : defaultCode;
         const id = getVal(item, ['id', 'ID', 'Id', 'id_task']) || `sheet-task-${index}-${Date.now()}`;
         const description = getVal(item, ['description', 'Mô tả', 'Nội dung', 'Chi tiết', 'Mô tả công việc']) || '';
