@@ -10,6 +10,8 @@ interface TaskModalProps {
   taskToEdit?: Task | null;
   departments: Department[];
   officers: Officer[];
+  existingTasksCount?: number;
+  existingTasks?: Task[];
   onAddOfficer?: (officer: Officer) => void;
   onUpdateOfficer?: (officer: Officer) => void;
 }
@@ -21,6 +23,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   taskToEdit,
   departments,
   officers,
+  existingTasksCount,
+  existingTasks,
   onAddOfficer,
   onUpdateOfficer
 }) => {
@@ -68,9 +72,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setDeliverable(taskToEdit.deliverable || '');
       setNotes(taskToEdit.notes || '');
     } else {
-      // Auto code
-      const randomNum = Math.floor(100 + Math.random() * 900);
-      setCode(`CV-CAS-${randomNum}`);
+      // Auto code CV-001, CV-002...
+      const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
+      const nextNum = totalCount + 1;
+      const autoCode = `CV-${String(nextNum).padStart(3, '0')}`;
+      setCode(autoCode);
       setTitle('');
       setDescription('');
       const defaultDept = departments[0]?.id || '';
@@ -190,9 +196,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const selectedDept = departments.find(d => d.id === departmentId);
     const selectedOff = officers.find(o => o.id === assigneeId);
 
+    const totalCount = existingTasksCount !== undefined ? existingTasksCount : (existingTasks?.length || 0);
+    const fallbackCode = `CV-${String(totalCount + 1).padStart(3, '0')}`;
+
     onSave({
       id: taskToEdit?.id,
-      code: code || `CV-CAS-${Math.floor(Math.random() * 1000)}`,
+      code: code ? code.trim() : fallbackCode,
       title,
       description,
       departmentId,

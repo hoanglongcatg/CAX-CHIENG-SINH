@@ -7,23 +7,37 @@ export const GOOGLE_SHEETS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfy
  */
 export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<boolean> {
   try {
+    const codeVal = taskData.code ? String(taskData.code).trim() : '';
+
     const payload = {
       action: 'createTask',
       id: taskData.id || '',
-      code: taskData.code || '',
+      code: codeVal,
+      'Mã CV': codeVal,
+      'Mã công việc': codeVal,
+      'Mã CV (code)': codeVal,
+      'Mã số': codeVal,
       title: taskData.title || '',
+      'Tên công việc': taskData.title || '',
       description: taskData.description || '',
+      'Mô tả': taskData.description || '',
       departmentId: taskData.departmentId || '',
       departmentName: taskData.departmentName || '',
+      'Phòng ban': taskData.departmentName || '',
       assigneeId: taskData.assigneeId || '',
       assigneeName: taskData.assigneeName || '',
+      'Cán bộ': taskData.assigneeName || '',
       assigneeEmail: taskData.assigneeEmail || '',
       assignerName: taskData.assignerName || '',
       startDate: taskData.startDate || '',
       dueDate: taskData.dueDate || '',
+      'Thời hạn': taskData.dueDate || '',
       priority: taskData.priority || '',
+      'Độ ưu tiên': taskData.priority || '',
       status: taskData.status || '',
+      'Trạng thái': taskData.status || '',
       progress: taskData.progress ?? 0,
+      'Tiến độ': taskData.progress ?? 0,
       deliverable: taskData.deliverable || '',
       notes: taskData.notes || '',
       createdAt: taskData.createdAt || new Date().toISOString(),
@@ -147,7 +161,9 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
       .filter(item => item && typeof item === 'object')
       .map((item, index) => {
         const title = getVal(item, ['title', 'Tên công việc', 'Tên CV', 'Tiêu đề', 'Nội dung công việc', 'taskName', 'name']) || 'Công việc từ Google Sheets';
-        const code = getVal(item, ['code', 'Mã CV', 'Mã công việc', 'Mã số', 'ID CV', 'Code']) || `CV-CS-${1000 + index}`;
+        const rawCode = getVal(item, ['code', 'Mã CV', 'Mã công việc', 'Mã CV (code)', 'Mã số', 'ID CV', 'Code', 'Macv', 'MaCV', 'Mã_CV']);
+        const defaultCode = `CV-${String(index + 1).padStart(3, '0')}`;
+        const code = rawCode ? String(rawCode).trim() : defaultCode;
         const id = getVal(item, ['id', 'ID', 'Id', 'id_task']) || `sheet-task-${index}-${Date.now()}`;
         const description = getVal(item, ['description', 'Mô tả', 'Nội dung', 'Chi tiết', 'Mô tả công việc']) || '';
         

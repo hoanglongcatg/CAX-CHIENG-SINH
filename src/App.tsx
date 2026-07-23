@@ -355,6 +355,8 @@ export default function App() {
         taskToEdit={taskToEdit}
         departments={departments}
         officers={officers}
+        existingTasksCount={tasks.length}
+        existingTasks={tasks}
         onAddOfficer={handleAddOfficer}
         onUpdateOfficer={handleUpdateOfficer}
       />
