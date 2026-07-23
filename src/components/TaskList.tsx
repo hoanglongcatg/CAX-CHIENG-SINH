@@ -16,7 +16,8 @@ import {
   User, 
   Calendar,
   Sparkles,
-  FileText
+  FileText,
+  RotateCw
 } from 'lucide-react';
 
 interface TaskListProps {
@@ -29,6 +30,7 @@ interface TaskListProps {
   onUpdateProgress: (taskId: string, newProgress: number, newNotes?: string) => void;
   onOpenCreateModal: () => void;
   isLoggedIn?: boolean;
+  onRefreshFromSheets?: () => void;
 }
 
 const PRIORITY_LABELS: Record<TaskPriority, { label: string; bg: string; text: string }> = {
@@ -47,7 +49,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   onSendReminderEmail,
   onUpdateProgress,
   onOpenCreateModal,
-  isLoggedIn = false
+  isLoggedIn = false,
+  onRefreshFromSheets
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('all');
@@ -115,14 +118,27 @@ export const TaskList: React.FC<TaskListProps> = ({
             </p>
           </div>
 
-          {isLoggedIn && (
-            <button
-              onClick={onOpenCreateModal}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-lg shadow transition-all cursor-pointer flex items-center space-x-2 self-start sm:self-auto"
-            >
-              <span>+ Giao công việc mới</span>
-            </button>
-          )}
+          <div className="flex items-center space-x-2 self-start sm:self-auto">
+            {onRefreshFromSheets && (
+              <button
+                onClick={onRefreshFromSheets}
+                title="Tải lại công việc từ Google Sheets"
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs sm:text-sm rounded-lg border border-slate-300 shadow-sm transition-all cursor-pointer flex items-center space-x-1.5"
+              >
+                <RotateCw className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden md:inline">Làm mới từ Google Sheets</span>
+              </button>
+            )}
+
+            {isLoggedIn && (
+              <button
+                onClick={onOpenCreateModal}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-lg shadow transition-all cursor-pointer flex items-center space-x-2"
+              >
+                <span>+ Giao công việc mới</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter Inputs Grid */}

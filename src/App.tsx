@@ -25,7 +25,7 @@ import { TaskModal } from './components/TaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { ReportCenter } from './components/ReportCenter';
-import { sendTaskToGoogleSheets } from './services/googleSheetsService';
+import { sendTaskToGoogleSheets, fetchTasksFromGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
 export default function App() {
@@ -50,6 +50,16 @@ export default function App() {
   // Toast alert feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Sync tasks from Google Sheets helper
+  const fetchAndSyncTasks = React.useCallback(async () => {
+    const sheetTasks = await fetchTasksFromGoogleSheets();
+    if (sheetTasks && sheetTasks.length > 0) {
+      setTasks(sheetTasks);
+      saveTasks(sheetTasks);
+      console.log('✅ [App] Đã đồng bộ thành công danh sách công việc từ Google Sheets');
+    }
+  }, []);
+
   // Initial Data Loading
   useEffect(() => {
     const loadedTasks = loadTasks();
@@ -61,7 +71,10 @@ export default function App() {
     setDepartments(loadedDepts);
     setOfficers(loadedOffs);
     setNotifications(loadedNotifs);
-  }, []);
+
+    // Auto load tasks from Google Sheets
+    fetchAndSyncTasks();
+  }, [fetchAndSyncTasks]);
 
   // Show Toast Alert helper
   const showToast = (msg: string) => {
@@ -127,6 +140,11 @@ export default function App() {
 
       // Post to Google Sheets Web App
       sendTaskToGoogleSheets(newTask);
+
+      // Auto refresh task list from Google Sheets
+      setTimeout(() => {
+        fetchAndSyncTasks();
+      }, 1200);
 
       // Auto create assignment email notification
       const newNotif: NotificationItem = {
@@ -291,6 +309,10 @@ export default function App() {
               setIsTaskModalOpen(true);
             }}
             isLoggedIn={isLoggedIn}
+            onRefreshFromSheets={async () => {
+              showToast('🔄 Đang làm mới dữ liệu từ Google Sheets...');
+              await fetchAndSyncTasks();
+            }}
           />
         )}
 
