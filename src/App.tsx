@@ -25,6 +25,7 @@ import { TaskModal } from './components/TaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { ReportCenter } from './components/ReportCenter';
+import { LoginScreen } from './components/LoginScreen';
 import { sendTaskToGoogleSheets, fetchTasksFromGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
@@ -63,7 +64,9 @@ function deduplicateTasksList(taskList: Task[]): Task[] {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return !!localStorage.getItem('chiengsinh_police_user');
+  });
 
   const handleAuthChange = React.useCallback((isAuth: boolean) => {
     setIsLoggedIn(isAuth);
@@ -298,6 +301,17 @@ export default function App() {
     setNotifications(updatedNotifs);
     saveNotifications(updatedNotifs);
   };
+
+  // Lock interface if not logged in
+  if (!isLoggedIn) {
+    return (
+      <LoginScreen
+        onLoginSuccess={() => {
+          setIsLoggedIn(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">

@@ -61,7 +61,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onAuthChange
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [policeUser, setPoliceUser] = useState<CustomPoliceUser | null>(null);
+  const [policeUser, setPoliceUser] = useState<CustomPoliceUser | null>(() => {
+    const savedPolice = localStorage.getItem('chiengsinh_police_user');
+    if (savedPolice) {
+      try {
+        return JSON.parse(savedPolice);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'police' | 'gmail'>('police');
 
