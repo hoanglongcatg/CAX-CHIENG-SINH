@@ -234,7 +234,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const selectedOff = officers.find(o => o.id === assigneeId);
 
     const fallbackCode = `${252 + totalCount}/KH-CAT-PV01`;
-    const finalAssigneeName = assigneeNameInput.trim() || selectedOff?.name || 'Cán bộ thụ lý';
+    const finalDeptName = selectedDept?.name || 'Tổ Tổng hợp';
+    const finalAssigneeName = assigneeNameInput.trim() || selectedOff?.name || 'Cán bộ chưa phân công';
 
     onSave({
       id: taskToEdit?.id,
@@ -242,9 +243,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       title,
       description,
       departmentId,
-      departmentName: selectedDept?.name || 'Chưa phân công',
+      departmentName: finalDeptName,
+      department: finalDeptName,
       assigneeId,
       assigneeName: finalAssigneeName,
+      assignee: finalAssigneeName,
       assigneeEmail: selectedOff ? selectedOff.email : (selectedDept?.email || 'canbo@congan.sonla.gov.vn'),
       assignerName,
       startDate,
@@ -256,7 +259,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       notes,
       updatedAt: today,
       createdAt: taskToEdit ? taskToEdit.createdAt : today
-    });
+    } as any);
 
     onClose();
   };

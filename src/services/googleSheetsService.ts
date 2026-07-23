@@ -8,6 +8,8 @@ export const GOOGLE_SHEETS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfy
 export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<boolean> {
   try {
     const codeVal = taskData.code ? String(taskData.code).trim() : (taskData.id || `task-${Date.now()}`);
+    const deptNameVal = taskData.departmentName || (taskData as any).department || 'Tổ Tổng hợp';
+    const assigneeNameVal = taskData.assigneeName || (taskData as any).assignee || 'Cán bộ chưa phân công';
 
     const payload = {
       action: 'createTask',
@@ -21,12 +23,25 @@ export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<b
       'Tên công việc': taskData.title || '',
       description: taskData.description || '',
       'Mô tả': taskData.description || '',
+      
       departmentId: taskData.departmentId || '',
-      departmentName: taskData.departmentName || '',
-      'Phòng ban': taskData.departmentName || '',
+      departmentName: deptNameVal,
+      department: deptNameVal,
+      'Phòng ban': deptNameVal,
+      'Bộ phận': deptNameVal,
+      'Tổ': deptNameVal,
+      'Đơn vị': deptNameVal,
+      'Tổ công tác': deptNameVal,
+
       assigneeId: taskData.assigneeId || '',
-      assigneeName: taskData.assigneeName || '',
-      'Cán bộ': taskData.assigneeName || '',
+      assigneeName: assigneeNameVal,
+      assignee: assigneeNameVal,
+      'Cán bộ': assigneeNameVal,
+      'Cán bộ phụ trách': assigneeNameVal,
+      'Cán bộ thực hiện': assigneeNameVal,
+      'Người thực hiện': assigneeNameVal,
+      'Cán bộ đảm nhận': assigneeNameVal,
+
       assigneeEmail: taskData.assigneeEmail || '',
       assignerName: taskData.assignerName || '',
       startDate: taskData.startDate || '',
