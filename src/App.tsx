@@ -25,6 +25,7 @@ import { TaskModal } from './components/TaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { ReportCenter } from './components/ReportCenter';
+import { sendTaskToGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
 export default function App() {
@@ -113,6 +114,8 @@ export default function App() {
       // Edit existing
       updatedTasks = tasks.map(t => t.id === taskData.id ? { ...t, ...taskData } as Task : t);
       showToast(`✅ Đã cập nhật thông tin công việc [${taskData.code}] thành công!`);
+      // Optionally sync edits to Google Sheets as well
+      sendTaskToGoogleSheets({ ...taskData });
     } else {
       // Create new
       const newTask = {
@@ -120,7 +123,10 @@ export default function App() {
         id: `task-${Date.now()}`
       } as Task;
       updatedTasks = [newTask, ...tasks];
-      showToast(`🎉 Đã giao công việc mới [${newTask.code}] thành công!`);
+      showToast(`🎉 Đã giao công việc mới [${newTask.code}] và đã lưu vào Google Sheets!`);
+
+      // Post to Google Sheets Web App
+      sendTaskToGoogleSheets(newTask);
 
       // Auto create assignment email notification
       const newNotif: NotificationItem = {
