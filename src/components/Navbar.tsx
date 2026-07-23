@@ -23,7 +23,8 @@ import {
   Eye,
   EyeOff,
   Award,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { 
   auth, 
@@ -50,6 +51,7 @@ interface NavbarProps {
   onOpenCreateModal: () => void;
   unreadNotifsCount: number;
   onAuthChange?: (isLoggedIn: boolean) => void;
+  onOpenAiAssistant?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -58,7 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   stats,
   onOpenCreateModal,
   unreadNotifsCount,
-  onAuthChange
+  onAuthChange,
+  onOpenAiAssistant
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [policeUser, setPoliceUser] = useState<CustomPoliceUser | null>(() => {
@@ -127,6 +130,79 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   }, [policeUser, user, onAuthChange]);
 
+  const ACCOUNTS_DB: Record<string, { pass: string; user: CustomPoliceUser }> = {
+    'caxchiengsinh.db': {
+      pass: 'chiengsinh123@',
+      user: {
+        username: 'caxchiengsinh.db',
+        displayName: 'Trưởng Công an xã Chiềng Sinh',
+        role: 'Ban Chỉ Huy Công An Xã',
+        email: 'caxchiengsinh.db@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-1268'
+      }
+    },
+    'nhanviencax.cs': {
+      pass: 'nhanvien123@',
+      user: {
+        username: 'nhanviencax.cs',
+        displayName: 'Cán bộ Công an xã Chiềng Sinh',
+        role: 'Cán Bộ Nghiệp Vụ',
+        email: 'nhanviencax.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-2345'
+      }
+    },
+    'tonghop.cs': {
+      pass: 'tonghop123@',
+      user: {
+        username: 'tonghop.cs',
+        displayName: 'Cán bộ Tổ Tổng hợp',
+        role: 'Tổ Tổng Hợp',
+        email: 'tonghop.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3001'
+      }
+    },
+    'aninh.cs': {
+      pass: 'anninh123@',
+      user: {
+        username: 'aninh.cs',
+        displayName: 'Cán bộ Tổ An ninh',
+        role: 'Tổ An Ninh',
+        email: 'aninh.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3002'
+      }
+    },
+    'cskv.cs': {
+      pass: 'cskv123@',
+      user: {
+        username: 'cskv.cs',
+        displayName: 'Cán bộ Tổ Cảnh sát khu vực',
+        role: 'Tổ CSKV',
+        email: 'cskv.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3003'
+      }
+    },
+    'pctp.cs': {
+      pass: 'pctp123@',
+      user: {
+        username: 'pctp.cs',
+        displayName: 'Cán bộ Tổ Phòng chống tội phạm',
+        role: 'Tổ PCTP',
+        email: 'pctp.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3004'
+      }
+    },
+    'cstt.cs': {
+      pass: 'cstt123@',
+      user: {
+        username: 'cstt.cs',
+        displayName: 'Cán bộ Tổ Cảnh sát trật tự',
+        role: 'Tổ CSTT',
+        email: 'cstt.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3005'
+      }
+    }
+  };
+
   // Police Login Handler
   const handlePoliceLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,32 +212,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     const u = usernameInput.trim();
     const p = passwordInput.trim();
 
-    if (u === 'caxchiengsinh.db' && p === 'chiengsinh123@') {
-      const pUser: CustomPoliceUser = {
-        username: 'caxchiengsinh.db',
-        displayName: 'Trưởng Công an xã Chiềng Sinh',
-        role: 'Ban Chỉ Huy Công An Xã',
-        email: 'caxchiengsinh.db@congan.dienbien.gov.vn',
-        badgeNumber: 'CAS-1268'
-      };
-      setPoliceUser(pUser);
-      localStorage.setItem('chiengsinh_police_user', JSON.stringify(pUser));
-      setLoginSuccessMsg('Đăng nhập thành công! Đã xác thực Trưởng Công an xã Chiềng Sinh...');
-      setTimeout(() => {
-        setIsAuthModalOpen(false);
-        setLoginSuccessMsg('');
-      }, 1000);
-    } else if (u === 'nhanviencax.cs' && p === 'nhanvien123@') {
-      const pUser: CustomPoliceUser = {
-        username: 'nhanviencax.cs',
-        displayName: 'Cán bộ Công an xã Chiềng Sinh',
-        role: 'Cán Bộ Nghiệp Vụ',
-        email: 'nhanviencax.cs@congan.dienbien.gov.vn',
-        badgeNumber: 'CAS-2345'
-      };
-      setPoliceUser(pUser);
-      localStorage.setItem('chiengsinh_police_user', JSON.stringify(pUser));
-      setLoginSuccessMsg('Đăng nhập thành công! Đã xác thực Cán bộ CAX Chiềng Sinh...');
+    const match = ACCOUNTS_DB[u];
+    if (match && match.pass === p) {
+      setPoliceUser(match.user);
+      localStorage.setItem('chiengsinh_police_user', JSON.stringify(match.user));
+      setLoginSuccessMsg(`Đăng nhập thành công! Đã xác thực ${match.user.displayName}...`);
       setTimeout(() => {
         setIsAuthModalOpen(false);
         setLoginSuccessMsg('');
@@ -280,6 +335,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
                 </span>
               )}
+            </button>
+
+            {/* AI Assistant Button */}
+            <button
+              onClick={onOpenAiAssistant}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-red-800 via-amber-700 to-amber-600 hover:from-red-700 hover:to-amber-500 text-amber-100 font-bold text-xs shadow-md border border-amber-400/30 transition-all cursor-pointer active:scale-95 group"
+              title="Mở Trợ lý AI Công an xã Chiềng Sinh (Gemini AI)"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse group-hover:rotate-12 transition-transform" />
+              <span className="hidden md:inline">Trợ lý AI</span>
             </button>
 
             {/* Create Task Button - Only rendered when logged in */}

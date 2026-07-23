@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, Department, Officer, TaskPriority, TaskStatus } from '../types';
 import { getTodayString } from '../services/storageService';
-import { X, Save, Building2, User, Calendar, FileText, AlertTriangle, CheckCircle2, UserPlus, Edit3, UserCheck, Plus } from 'lucide-react';
+import { X, Save, Building2, User, Calendar, FileText, AlertTriangle, CheckCircle2, UserPlus, Edit3, UserCheck, Plus, Sparkles, Wand2, Loader2 } from 'lucide-react';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -56,6 +56,64 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [offDeptId, setOffDeptId] = useState('');
 
   const [assigneeNameInput, setAssigneeNameInput] = useState('');
+
+  // AI Directive Parser State
+  const [showAiParser, setShowAiParser] = useState(false);
+  const [directiveInput, setDirectiveInput] = useState('');
+  const [isParsingAi, setIsParsingAi] = useState(false);
+
+  const handleParseDirectiveAi = async () => {
+    if (!directiveInput.trim() || isParsingAi) return;
+    setIsParsingAi(true);
+    try {
+      const res = await fetch('/api/ai/draft-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textInput: directiveInput.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.taskDraft) {
+        const draft = data.taskDraft;
+        if (draft.title) setTitle(draft.title);
+        if (draft.code) setCode(draft.code);
+        if (draft.description) setDescription(draft.description);
+        if (draft.priority) setPriority(draft.priority as TaskPriority);
+        if (draft.dueDate) setDueDate(draft.dueDate);
+
+        // Find matching dept
+        if (draft.departmentName) {
+          const matchedDept = departments.find(d => 
+            d.name.toLowerCase().includes(draft.departmentName.toLowerCase()) || 
+            draft.departmentName.toLowerCase().includes(d.name.toLowerCase())
+          );
+          if (matchedDept) {
+            setDepartmentId(matchedDept.id);
+            const matchingOfficers = officers.filter(o => o.departmentId === matchedDept.id);
+            if (draft.assigneeName) {
+              const matchedOff = matchingOfficers.find(o => o.name.toLowerCase().includes(draft.assigneeName.toLowerCase()));
+              if (matchedOff) {
+                setAssigneeId(matchedOff.id);
+                setAssigneeNameInput(matchedOff.name);
+              } else {
+                setAssigneeNameInput(draft.assigneeName);
+              }
+            } else if (matchingOfficers.length > 0) {
+              setAssigneeId(matchingOfficers[0].id);
+              setAssigneeNameInput(matchingOfficers[0].name);
+            }
+          }
+        }
+        setShowAiParser(false);
+        setDirectiveInput('');
+      } else {
+        alert("Lỗi khi phân tích bằng AI: " + (data.error || "Vui lòng thử lại."));
+      }
+    } catch (e) {
+      alert("Không thể kết nối máy chủ Gemini AI.");
+    } finally {
+      setIsParsingAi(false);
+    }
+  };
 
   // Department suffix helper
   const getDeptSuffix = (dId: string, dName?: string): string => {
@@ -291,6 +349,62 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs sm:text-sm">
+          
+          {/* AI Directive Parser Section */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 p-3.5 rounded-xl border border-amber-500/30 shadow-md text-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="font-bold text-xs text-amber-200">
+                  Tự động điền Form bằng Gemini AI
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAiParser(!showAiParser)}
+                className="text-xs bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-300 font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center space-x-1"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>{showAiParser ? 'Đóng AI Parser' : '✨ Dán văn bản chỉ thị để AI bóc tách'}</span>
+              </button>
+            </div>
+
+            {showAiParser && (
+              <div className="mt-3 pt-3 border-t border-slate-700/60 space-y-2 animate-in fade-in duration-150">
+                <p className="text-[11px] text-slate-300">
+                  Dán nội dung công văn, thông báo chỉ đạo hoặc ghi chú giao việc vào ô dưới đây. Trợ lý AI Gemini sẽ tự động trích xuất Tên việc, Mã CV, Tổ phụ trách, Cán bộ và Hạn hoàn thành:
+                </p>
+                <textarea
+                  rows={3}
+                  value={directiveInput}
+                  onChange={(e) => setDirectiveInput(e.target.value)}
+                  placeholder="Ví dụ: Chỉ đạo của Trưởng Công an thành phố: Giao Tổ CSKV kiểm tra lưu trú toàn bộ các khu nhà trọ tại phường Chiềng Sinh hoàn thành trước ngày 30/7/2026, phân công Đ/c Lò Văn Nghiệp phụ trách..."
+                  className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs focus:outline-none focus:border-amber-400 font-sans"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleParseDirectiveAi}
+                    disabled={!directiveInput.trim() || isParsingAi}
+                    className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-amber-100 font-semibold text-xs shadow-md border border-amber-400/40 flex items-center space-x-1.5 cursor-pointer disabled:opacity-40"
+                  >
+                    {isParsingAi ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>AI đang phân tích...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Trích xuất dữ liệu vào Form</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Row 1: Code & Title */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>

@@ -26,6 +26,7 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { ReportCenter } from './components/ReportCenter';
 import { LoginScreen } from './components/LoginScreen';
+import { AiAssistantModal } from './components/AiAssistantModal';
 import { sendTaskToGoogleSheets, fetchTasksFromGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
@@ -80,6 +81,7 @@ export default function App() {
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [selectedTaskDetail, setSelectedTaskDetail] = useState<Task | null>(null);
 
@@ -213,6 +215,13 @@ export default function App() {
   };
 
   const handleDeleteTask = (taskId: string) => {
+    const currentUserStr = localStorage.getItem('chiengsinh_police_user');
+    const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+    if (!currentUser || currentUser.username !== 'caxchiengsinh.db') {
+      showToast('⚠️ Quyền hạn bị từ chối: Chỉ Trưởng Công an xã (caxchiengsinh.db) mới có quyền xóa công việc!');
+      return;
+    }
+
     const updatedTasks = tasks.filter(t => t.id !== taskId);
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
@@ -326,6 +335,7 @@ export default function App() {
         }}
         unreadNotifsCount={unreadNotifsCount}
         onAuthChange={handleAuthChange}
+        onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
       />
 
       {/* Main Container */}
@@ -422,6 +432,13 @@ export default function App() {
         }}
         onSendEmail={handleSendReminderEmail}
         onUpdateStatus={handleUpdateTaskStatus}
+      />
+
+      {/* AI Assistant Drawer Modal */}
+      <AiAssistantModal
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+        tasks={tasks}
       />
 
       {/* Toast Notification Alert Banner */}

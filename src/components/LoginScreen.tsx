@@ -28,6 +28,79 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const ACCOUNTS_DATABASE: Record<string, { pass: string; user: CustomPoliceUser }> = {
+    'caxchiengsinh.db': {
+      pass: 'chiengsinh123@',
+      user: {
+        username: 'caxchiengsinh.db',
+        displayName: 'Trưởng Công an xã Chiềng Sinh',
+        role: 'Ban Chỉ Huy Công An Xã',
+        email: 'caxchiengsinh.db@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-1268'
+      }
+    },
+    'nhanviencax.cs': {
+      pass: 'nhanvien123@',
+      user: {
+        username: 'nhanviencax.cs',
+        displayName: 'Cán bộ Công an xã Chiềng Sinh',
+        role: 'Cán Bộ Nghiệp Vụ',
+        email: 'nhanviencax.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-2345'
+      }
+    },
+    'tonghop.cs': {
+      pass: 'tonghop123@',
+      user: {
+        username: 'tonghop.cs',
+        displayName: 'Cán bộ Tổ Tổng hợp',
+        role: 'Tổ Tổng Hợp',
+        email: 'tonghop.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3001'
+      }
+    },
+    'aninh.cs': {
+      pass: 'anninh123@',
+      user: {
+        username: 'aninh.cs',
+        displayName: 'Cán bộ Tổ An ninh',
+        role: 'Tổ An Ninh',
+        email: 'aninh.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3002'
+      }
+    },
+    'cskv.cs': {
+      pass: 'cskv123@',
+      user: {
+        username: 'cskv.cs',
+        displayName: 'Cán bộ Tổ Cảnh sát khu vực',
+        role: 'Tổ CSKV',
+        email: 'cskv.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3003'
+      }
+    },
+    'pctp.cs': {
+      pass: 'pctp123@',
+      user: {
+        username: 'pctp.cs',
+        displayName: 'Cán bộ Tổ Phòng chống tội phạm',
+        role: 'Tổ PCTP',
+        email: 'pctp.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3004'
+      }
+    },
+    'cstt.cs': {
+      pass: 'cstt123@',
+      user: {
+        username: 'cstt.cs',
+        displayName: 'Cán bộ Tổ Cảnh sát trật tự',
+        role: 'Tổ CSTT',
+        email: 'cstt.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-3005'
+      }
+    }
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -44,31 +117,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     setTimeout(() => {
-      if (u === 'caxchiengsinh.db' && p === 'chiengsinh123@') {
-        const pUser: CustomPoliceUser = {
-          username: 'caxchiengsinh.db',
-          displayName: 'Trưởng Công an xã Chiềng Sinh',
-          role: 'Ban Chỉ Huy Công An Xã',
-          email: 'caxchiengsinh.db@congan.dienbien.gov.vn',
-          badgeNumber: 'CAS-1268'
-        };
-        localStorage.setItem('chiengsinh_police_user', JSON.stringify(pUser));
-        setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
+      const match = ACCOUNTS_DATABASE[u];
+      if (match && match.pass === p) {
+        localStorage.setItem('chiengsinh_police_user', JSON.stringify(match.user));
+        setSuccessMsg(`Đăng nhập thành công (${match.user.displayName})! Đang chuyển hướng...`);
         setTimeout(() => {
-          onLoginSuccess(pUser);
-        }, 800);
-      } else if (u === 'nhanviencax.cs' && p === 'nhanvien123@') {
-        const pUser: CustomPoliceUser = {
-          username: 'nhanviencax.cs',
-          displayName: 'Cán bộ Công an xã Chiềng Sinh',
-          role: 'Cán Bộ Nghiệp Vụ',
-          email: 'nhanviencax.cs@congan.dienbien.gov.vn',
-          badgeNumber: 'CAS-2345'
-        };
-        localStorage.setItem('chiengsinh_police_user', JSON.stringify(pUser));
-        setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
-        setTimeout(() => {
-          onLoginSuccess(pUser);
+          onLoginSuccess(match.user);
         }, 800);
       } else {
         setIsLoading(false);
@@ -77,14 +131,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }, 400);
   };
 
-  const handleFillAccount = (accountType: 'chief' | 'officer') => {
+  const handleFillAccountByKey = (key: string) => {
     setErrorMsg('');
-    if (accountType === 'chief') {
-      setUsername('caxchiengsinh.db');
-      setPassword('chiengsinh123@');
-    } else {
-      setUsername('nhanviencax.cs');
-      setPassword('nhanvien123@');
+    const acc = ACCOUNTS_DATABASE[key];
+    if (acc) {
+      setUsername(key);
+      setPassword(acc.pass);
     }
   };
 
@@ -199,33 +251,50 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             {/* Quick Fill Buttons for Convenience */}
             <div className="pt-1">
               <p className="text-[11px] text-slate-400 mb-2 font-medium flex items-center justify-between">
-                <span>Tài khoản kiểm thử nhanh:</span>
+                <span>Chọn nhanh tài khoản thử nghiệm:</span>
                 <Sparkles className="w-3 h-3 text-amber-400" />
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              
+              {/* Chief account highlighted */}
+              <div className="mb-2">
                 <button
                   type="button"
-                  onClick={() => handleFillAccount('chief')}
-                  className="px-2.5 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-left transition-all text-[11px]"
+                  onClick={() => handleFillAccountByKey('caxchiengsinh.db')}
+                  className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-red-950/80 to-amber-950/80 hover:from-red-900 hover:to-amber-900 border border-amber-500/50 text-left transition-all text-xs flex items-center justify-between shadow-sm cursor-pointer"
                 >
-                  <p className="font-bold text-amber-300 flex items-center space-x-1">
-                    <ShieldCheck className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span className="truncate">1. Trưởng CAX</span>
-                  </p>
-                  <p className="text-slate-400 font-mono text-[10px] truncate">caxchiengsinh.db</p>
+                  <div className="flex items-center space-x-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <p className="font-bold text-amber-300">Trưởng Công an xã (Quyền xóa CV)</p>
+                      <p className="text-slate-400 font-mono text-[10px]">caxchiengsinh.db | chiengsinh123@</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                    Trưởng CAX
+                  </span>
                 </button>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleFillAccount('officer')}
-                  className="px-2.5 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 text-left transition-all text-[11px]"
-                >
-                  <p className="font-bold text-blue-300 flex items-center space-x-1">
-                    <UserIcon className="w-3 h-3 text-blue-400 shrink-0" />
-                    <span className="truncate">2. Cán bộ CAX</span>
-                  </p>
-                  <p className="text-slate-400 font-mono text-[10px] truncate">nhanviencax.cs</p>
-                </button>
+              {/* 6 Officers & Organization Teams Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                {[
+                  { key: 'nhanviencax.cs', label: 'Cán bộ CAX', role: 'nhanvien123@' },
+                  { key: 'tonghop.cs', label: 'Tổ Tổng hợp', role: 'tonghop123@' },
+                  { key: 'aninh.cs', label: 'Tổ An ninh', role: 'anninh123@' },
+                  { key: 'cskv.cs', label: 'Tổ CSKV', role: 'cskv123@' },
+                  { key: 'pctp.cs', label: 'Tổ PCTP', role: 'pctp123@' },
+                  { key: 'cstt.cs', label: 'Tổ CSTT', role: 'cstt123@' },
+                ].map((acc) => (
+                  <button
+                    key={acc.key}
+                    type="button"
+                    onClick={() => handleFillAccountByKey(acc.key)}
+                    className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/50 text-left transition-all cursor-pointer"
+                  >
+                    <p className="font-bold text-blue-300 text-[11px] truncate">{acc.label}</p>
+                    <p className="text-slate-400 font-mono text-[10px] truncate">{acc.key}</p>
+                  </button>
+                ))}
               </div>
             </div>
 

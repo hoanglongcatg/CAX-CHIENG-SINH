@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '../types';
 import { getDaysDifference, getTodayString } from '../services/storageService';
 import { 
@@ -12,7 +12,11 @@ import {
   Send, 
   Edit3, 
   FileText,
-  Tag
+  Tag,
+  Sparkles,
+  Copy,
+  Check,
+  Loader2
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -30,11 +34,44 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   onSendEmail,
   onUpdateStatus
 }) => {
+  const [aiReminderText, setAiReminderText] = useState<string | null>(null);
+  const [isGeneratingAiReminder, setIsGeneratingAiReminder] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
   if (!task) return null;
 
   const today = getTodayString();
   const isOverdue = task.status === 'overdue' || (task.dueDate < today && task.status !== 'completed');
   const daysDiff = getDaysDifference(task.dueDate);
+
+  const handleGenerateAiReminder = async () => {
+    setIsGeneratingAiReminder(true);
+    setAiReminderText(null);
+    try {
+      const res = await fetch('/api/ai/draft-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+      const data = await res.json();
+      if (res.ok && data.reminderText) {
+        setAiReminderText(data.reminderText);
+      } else {
+        alert("Lỗi tạo tin nhắn AI: " + (data.error || "Vui lòng thử lại."));
+      }
+    } catch (e) {
+      alert("Không thể kết nối máy chủ Gemini AI.");
+    } finally {
+      setIsGeneratingAiReminder(false);
+    }
+  };
+
+  const handleCopyReminder = () => {
+    if (!aiReminderText) return;
+    navigator.clipboard.writeText(aiReminderText);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -155,15 +192,66 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </div>
           )}
 
+          {/* AI Generated Reminder Box */}
+          {aiReminderText && (
+            <div className="p-3.5 bg-slate-900 text-slate-100 rounded-xl border border-amber-500/40 shadow-lg space-y-2 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center space-x-1.5 text-amber-400 font-bold text-xs">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Nội dung tin nhắn đôn đốc từ Gemini AI:</span>
+                </div>
+                <button
+                  onClick={handleCopyReminder}
+                  className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold text-[11px] flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Đã chép!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Sao chép tin nhắn</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed font-sans bg-slate-950 p-3 rounded-lg border border-slate-800">
+                {aiReminderText}
+              </p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-            <button
-              onClick={() => onSendEmail(task)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow cursor-pointer flex items-center space-x-1.5"
-            >
-              <Send className="w-4 h-4" />
-              <span>Gửi Thư Nhắc Nhở Ngay</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onSendEmail(task)}
+                className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow cursor-pointer flex items-center space-x-1.5"
+              >
+                <Send className="w-4 h-4" />
+                <span>Gửi Thư Email</span>
+              </button>
+
+              <button
+                onClick={handleGenerateAiReminder}
+                disabled={isGeneratingAiReminder}
+                className="px-3.5 py-2 bg-gradient-to-r from-red-800 via-amber-700 to-amber-600 hover:from-red-700 hover:to-amber-500 text-amber-100 font-bold text-xs rounded-lg shadow border border-amber-400/40 cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                {isGeneratingAiReminder ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+                    <span>AI đang soạn...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>✨ AI Soạn Thư Đôn Đốc</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             <div className="flex items-center space-x-2">
               <button

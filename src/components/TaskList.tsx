@@ -69,6 +69,11 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const today = getTodayString();
 
+  // Check logged-in user role for task deletion permission
+  const currentUserStr = localStorage.getItem('chiengsinh_police_user');
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const isChiefOfPolice = currentUser?.username === 'caxchiengsinh.db';
+
   // Safety checks for props
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeDepartments = Array.isArray(departments) ? departments : [];
@@ -438,18 +443,30 @@ export const TaskList: React.FC<TaskListProps> = ({
                             <Edit3 className="w-4 h-4" />
                           </button>
 
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              if (confirm(`Bạn có chắc chắn muốn xóa công việc ${task.code}?`)) {
-                                onDeleteTask(task.id);
-                              }
-                            }}
-                            className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600 transition-all cursor-pointer"
-                            title="Xóa công việc"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {/* Delete - Restricted to Chief of Police */}
+                          {isChiefOfPolice ? (
+                            <button
+                              onClick={() => {
+                                if (confirm(`[TRƯỞNG CÔNG AN XÃ] Đồng chí có chắc chắn muốn xóa công việc ${task.code}?`)) {
+                                  onDeleteTask(task.id);
+                                }
+                              }}
+                              className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600 transition-all cursor-pointer"
+                              title="Xóa công việc (Dành cho Trưởng Công an xã)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                alert('⚠️ Quyền hạn bị từ chối: Chỉ tài khoản Trưởng Công an xã (caxchiengsinh.db) mới có quyền xóa công việc thực hiện tiến độ!');
+                              }}
+                              className="p-1.5 rounded bg-slate-100 text-slate-400 hover:text-red-500 hover:bg-slate-200 transition-all cursor-pointer"
+                              title="Chỉ Trưởng Công an xã mới có quyền xóa công việc"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
