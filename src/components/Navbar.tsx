@@ -131,8 +131,23 @@ export const Navbar: React.FC<NavbarProps> = ({
         setIsAuthModalOpen(false);
         setLoginSuccessMsg('');
       }, 1000);
+    } else if (u === 'nhanviencax.cs' && p === 'nhanvien123@') {
+      const pUser: CustomPoliceUser = {
+        username: 'nhanviencax.cs',
+        displayName: 'Cán bộ Công an xã Chiềng Sinh',
+        role: 'Cán Bộ Nghiệp Vụ',
+        email: 'nhanviencax.cs@congan.dienbien.gov.vn',
+        badgeNumber: 'CAS-2345'
+      };
+      setPoliceUser(pUser);
+      localStorage.setItem('chiengsinh_police_user', JSON.stringify(pUser));
+      setLoginSuccessMsg('Đăng nhập thành công! Đã xác thực Cán bộ CAX Chiềng Sinh...');
+      setTimeout(() => {
+        setIsAuthModalOpen(false);
+        setLoginSuccessMsg('');
+      }, 1000);
     } else {
-      setLoginError('Tên tài khoản hoặc mật khẩu không chính xác! (Gợi ý: caxchiengsinh.db / chiengsinh123@)');
+      setLoginError('Tên tài khoản hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.');
     }
   };
 
@@ -316,10 +331,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsAuthModalOpen(true);
                 }}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-red-700 via-red-800 to-slate-900 text-amber-200 hover:from-red-600 hover:to-slate-800 font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer border border-amber-500/40"
-                title="Đăng nhập Tài khoản Đơn vị CAND / Gmail"
+                title="Đăng nhập hệ thống"
               >
                 <Shield className="w-4 h-4 text-amber-400" />
-                <span>Đăng nhập Đơn vị</span>
+                <span>Đăng nhập</span>
               </button>
             )}
           </div>
@@ -492,7 +507,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {/* Username Field */}
                   <div>
                     <label className="text-xs font-bold text-amber-200 uppercase tracking-wider block mb-1">
-                      Tên tài khoản đơn vị *
+                      Tên tài khoản *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-amber-400/70">
@@ -500,7 +515,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <input
                         type="text"
-                        placeholder="caxchiengsinh.db"
+                        placeholder="Nhập tên tài khoản..."
                         value={usernameInput}
                         onChange={(e) => setUsernameInput(e.target.value)}
                         required
@@ -512,7 +527,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {/* Password Field */}
                   <div>
                     <label className="text-xs font-bold text-amber-200 uppercase tracking-wider block mb-1">
-                      Mật khẩu mật *
+                      Mật khẩu *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-amber-400/70">
@@ -520,7 +535,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <input
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="chiengsinh123@"
+                        placeholder="••••••••"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         required
@@ -534,19 +549,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                  </div>
-
-                  {/* Pre-fill Quick Button */}
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      type="button"
-                      onClick={handleFillDemoPolice}
-                      className="text-xs text-amber-400 hover:text-amber-300 underline font-semibold flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                      <span>Nhập tự động thông tin tài khoản mẫu</span>
-                    </button>
-                    <span className="text-[11px] font-mono text-slate-500">caxchiengsinh.db</span>
                   </div>
 
                   {/* Submit Button */}
