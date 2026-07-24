@@ -29,37 +29,33 @@ import { LoginScreen } from './components/LoginScreen';
 import { sendTaskToGoogleSheets, fetchTasksFromGoogleSheets } from './services/googleSheetsService';
 import { CheckCircle2, AlertCircle, Send, X } from 'lucide-react';
 
-// Helper to deduplicate tasks by code and id
+// Helper to deduplicate tasks by code and id, prioritizing newer entries (later in array)
 function deduplicateTasksList(taskList: Task[]): Task[] {
   if (!Array.isArray(taskList)) return [];
-  const seenCodes = new Set<string>();
-  const seenIds = new Set<string>();
-  const result: Task[] = [];
+  const taskMap = new Map<string, Task>();
+  const noKeyTasks: Task[] = [];
 
   for (const task of taskList) {
     if (!task) continue;
     const codeKey = (task.code || '').trim().toLowerCase();
     const idKey = (task.id || '').trim().toLowerCase();
+    const key = codeKey || idKey;
 
-    if (!codeKey && !idKey) {
-      result.push(task);
+    if (!key) {
+      noKeyTasks.push(task);
       continue;
     }
 
-    const isCodeDup = codeKey ? seenCodes.has(codeKey) : false;
-    const isIdDup = idKey ? seenIds.has(idKey) : false;
-
-    if (isCodeDup || isIdDup) {
-      continue;
+    const existing = taskMap.get(key);
+    if (!existing) {
+      taskMap.set(key, task);
+    } else {
+      // Merge with priority to `task` (the newer entry)
+      taskMap.set(key, { ...existing, ...task });
     }
-
-    if (codeKey) seenCodes.add(codeKey);
-    if (idKey) seenIds.add(idKey);
-
-    result.push(task);
   }
 
-  return result;
+  return [...Array.from(taskMap.values()), ...noKeyTasks];
 }
 
 export default function App() {
@@ -90,8 +86,9 @@ export default function App() {
   const fetchAndSyncTasks = React.useCallback(async () => {
     const sheetTasks = await fetchTasksFromGoogleSheets();
     if (sheetTasks && sheetTasks.length > 0) {
-      // Completely replace tasks state with Google Sheets data (no mock data)
-      const cleanTasks = deduplicateTasksList(sheetTasks);
+      // Prioritize Google Sheets data over old local storage data for matching tasks
+      const localTasks = loadTasks();
+      const cleanTasks = deduplicateTasksList([...localTasks, ...sheetTasks]);
       setTasks(cleanTasks);
       saveTasks(cleanTasks);
       console.log('✅ [App] Đã đồng bộ thành công danh sách công việc từ Google Sheets');

@@ -245,24 +245,7 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
           priority = 'normal';
         }
 
-        // Status normalization
-        const rawStatus = String(getVal(item, ['Trạng thái', 'status', 'Tình trạng', '6', 'colG', 'col_G', 'G']) || 'todo').toLowerCase();
-        let status: Task['status'] = 'todo';
-        if (rawStatus.includes('chờ') || rawStatus.includes('pending') || rawStatus.includes('duyệt') || rawStatus.includes('trình')) {
-          status = 'pending_approval';
-        } else if (rawStatus.includes('hoàn thành') || rawStatus.includes('completed') || rawStatus.includes('xong') || rawStatus.includes('done')) {
-          status = 'completed';
-        } else if (rawStatus.includes('đang') || rawStatus.includes('in_progress') || rawStatus.includes('progress') || rawStatus.includes('doing')) {
-          status = 'in_progress';
-        } else if (rawStatus.includes('quá hạn') || rawStatus.includes('overdue') || rawStatus.includes('trễ')) {
-          status = 'overdue';
-        } else if (rawStatus.includes('hoãn') || rawStatus.includes('on_hold') || rawStatus.includes('tạm dừng')) {
-          status = 'on_hold';
-        } else {
-          status = 'todo';
-        }
-
-        // Progress parsing
+        // Progress parsing first
         const rawProgress = getVal(item, ['Tiến độ', 'Tiến độ (%)', '% hoàn thành', 'progress', 'Tỷ lệ', '5', 'colF', 'col_F', 'F']);
         let progressNum = 0;
         if (rawProgress !== undefined && rawProgress !== null) {
@@ -270,8 +253,109 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
           if (!isNaN(parsed)) progressNum = Math.min(100, Math.max(0, parsed));
         }
 
+        // Status & Approval normalization
+        const rawStatus = String(getVal(item, ['Trạng thái', 'status', 'Tình trạng', '6', 'colG', 'col_G', 'G']) || '').toLowerCase().trim();
+        const rawApprovalVal = getVal(item, ['approvalStatus', 'Trạng thái phê duyệt', 'Phê duyệt', 'phê duyệt']);
+        const rawApprovalStatus = rawApprovalVal ? String(rawApprovalVal).toLowerCase().trim() : '';
+
+        let status: Task['status'] = 'todo';
+        let approvalStatus: Task['approvalStatus'] = undefined;
+
+        // 1. Check pending_approval first (Chờ Trưởng CAX phê duyệt, Chờ CAX duyệt, Chờ phê duyệt, Trình CAX, etc.)
+        if (
+          rawStatus.includes('chờ') ||
+          rawStatus.includes('trình') ||
+          rawStatus.includes('pending') ||
+          rawApprovalStatus === 'pending' ||
+          rawApprovalStatus.includes('chờ') ||
+          rawApprovalStatus.includes('trình')
+        ) {
+          status = 'pending_approval';
+          approvalStatus = 'pending';
+        }
+        // 2. Check completed / approved (Đã hoàn thành, Hoàn thành, Đã duyệt, Đã phê duyệt, Phê duyệt, Xong, Done, Completed)
+        else if (
+          rawStatus.includes('hoàn thành') ||
+          rawStatus.includes('đã phê duyệt') ||
+          rawStatus.includes('đã duyệt') ||
+          rawStatus === 'completed' ||
+          rawStatus === 'done' ||
+          rawStatus === 'xong' ||
+          rawApprovalStatus === 'approved' ||
+          rawApprovalStatus.includes('đã phê duyệt') ||
+          rawApprovalStatus.includes('đã duyệt')
+        ) {
+          status = 'completed';
+          approvalStatus = 'approved';
+        }
+        // 3. Check explicit todo / chưa thực hiện
+        else if (
+          rawStatus.includes('chưa') ||
+          rawStatus.includes('chưa làm') ||
+          rawStatus === 'todo'
+        ) {
+          status = 'todo';
+        }
+        // 4. Check in_progress
+        else if (
+          rawStatus.includes('đang') ||
+          rawStatus.includes('in_progress') ||
+          rawStatus.includes('doing') ||
+          rawStatus.includes('thực hiện')
+        ) {
+          status = 'in_progress';
+        }
+        // 5. Check overdue
+        else if (
+          rawStatus.includes('quá hạn') ||
+          rawStatus.includes('overdue') ||
+          rawStatus.includes('trễ')
+        ) {
+          status = 'overdue';
+        }
+        // 6. Check on_hold
+        else if (
+          rawStatus.includes('hoãn') ||
+          rawStatus.includes('on_hold') ||
+          rawStatus.includes('tạm dừng')
+        ) {
+          status = 'on_hold';
+        }
+        // 7. Fallback based on progress
+        else if (progressNum === 100) {
+          if (rawApprovalStatus.includes('approved') || rawApprovalStatus.includes('duyệt')) {
+            status = 'completed';
+            approvalStatus = 'approved';
+          } else {
+            status = 'pending_approval';
+            approvalStatus = 'pending';
+          }
+        } else if (progressNum > 0) {
+          status = 'in_progress';
+        } else {
+          status = 'todo';
+        }
+
+        if (status === 'completed' && !approvalStatus) {
+          approvalStatus = 'approved';
+        } else if (status === 'pending_approval' && !approvalStatus) {
+          approvalStatus = 'pending';
+        } else if (rawApprovalStatus.includes('rejected') || rawApprovalStatus.includes('từ chối')) {
+          approvalStatus = 'rejected';
+        }
+
         const deliverable = getVal(item, ['deliverable', 'Sản phẩm', 'Sản phẩm cần đạt', 'Yêu cầu sản phẩm', 'Sản phẩm đầu ra']) || '';
         const notes = getVal(item, ['notes', 'Ghi chú', 'Báo cáo tiến độ', 'Phản hồi']) || '';
+
+        const isEarlyCompletionVal = getVal(item, ['isEarlyCompletion', 'Hoàn thành sớm', 'isEarly']);
+        const isEarlyCompletion = isEarlyCompletionVal === true || String(isEarlyCompletionVal).toLowerCase() === 'có' || String(isEarlyCompletionVal).toLowerCase() === 'true';
+
+        const approvedBy = String(getVal(item, ['approvedBy', 'Người phê duyệt', 'Lãnh đạo phê duyệt']) || '');
+        const approvedAtVal = getVal(item, ['approvedAt', 'Ngày phê duyệt']);
+        const approvedAt = approvedAtVal ? formatDate(approvedAtVal) : undefined;
+        const completedAtVal = getVal(item, ['completedAt', 'Ngày hoàn thành thực tế', 'Ngày xong', 'Ngày hoàn thành']);
+        const completedAt = completedAtVal ? formatDate(completedAtVal) : (status === 'completed' ? formatDate(new Date()) : undefined);
+        const approvalNote = String(getVal(item, ['approvalNote', 'Ghi chú phê duyệt', 'Ý kiến CAX', 'Ý kiến phê duyệt']) || '');
 
         return {
           id: String(id),
@@ -291,24 +375,39 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
           progress: progressNum,
           deliverable: String(deliverable),
           notes: String(notes),
+          approvalStatus,
+          isEarlyCompletion,
+          approvedBy,
+          approvedAt,
+          completedAt,
+          approvalNote,
           createdAt: String(getVal(item, ['createdAt', 'Ngày tạo']) || new Date().toISOString()),
           updatedAt: String(getVal(item, ['updatedAt', 'Ngày cập nhật']) || new Date().toISOString())
         };
       });
 
-    // Deduplicate sheet items by code or id
-    const uniqueSheetTasks: Task[] = [];
-    const seenKeys = new Set<string>();
-
+    // Deduplicate sheet items by code or id (giving priority to LATER rows in the Sheet)
+    const taskMap = new Map<string, Task>();
     for (const t of tasks) {
       const codeKey = (t.code || '').trim().toLowerCase();
       const idKey = (t.id || '').trim().toLowerCase();
-      if (codeKey && seenKeys.has(codeKey)) continue;
-      if (idKey && seenKeys.has(idKey)) continue;
-      if (codeKey) seenKeys.add(codeKey);
-      if (idKey) seenKeys.add(idKey);
-      uniqueSheetTasks.push(t);
+      const key = codeKey || idKey;
+
+      if (!key) {
+        taskMap.set(`idx-${Math.random()}`, t);
+        continue;
+      }
+
+      const existing = taskMap.get(key);
+      if (!existing) {
+        taskMap.set(key, t);
+      } else {
+        // Merge with priority to the later sheet row `t`
+        taskMap.set(key, { ...existing, ...t });
+      }
     }
+
+    const uniqueSheetTasks = Array.from(taskMap.values());
 
     console.log(`✅ [Google Sheets] Đã chuẩn hóa thành công ${uniqueSheetTasks.length} công việc duy nhất`);
     return uniqueSheetTasks;
