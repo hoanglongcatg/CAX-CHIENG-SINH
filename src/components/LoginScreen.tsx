@@ -6,13 +6,11 @@ import {
   Key, 
   Eye, 
   EyeOff, 
-  Award, 
   LogIn, 
   AlertCircle,
   CheckCircle2,
   Shield,
-  Building2,
-  Sparkles
+  Building2
 } from 'lucide-react';
 import { CustomPoliceUser } from './Navbar';
 
@@ -131,72 +129,61 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }, 400);
   };
 
-  const handleFillAccountByKey = (key: string) => {
-    setErrorMsg('');
-    const acc = ACCOUNTS_DATABASE[key];
-    if (acc) {
-      setUsername(key);
-      setPassword(acc.pass);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center relative overflow-hidden font-sans select-none">
-      {/* Background Decorative Glows */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-900/30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center relative overflow-hidden select-none">
+      {/* Background Decorative Police Ambient Light */}
+      <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-red-800/25 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-amber-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-emerald-900/10 rounded-full blur-[150px] pointer-events-none" />
 
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
+      {/* Grid subtle police backdrop */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)] opacity-25 pointer-events-none" />
 
       {/* Top Banner Header */}
-      <header className="w-full pt-8 pb-4 px-4 text-center z-10">
-        <div className="max-w-2xl mx-auto flex flex-col items-center">
-          {/* CAND Emblem Badge */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 via-red-700 to-amber-700 p-0.5 shadow-2xl shadow-red-900/50 mb-4 border border-amber-400/40 relative group">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 via-amber-500/10 to-transparent" />
-              <ShieldCheck className="w-12 h-12 text-amber-400 relative z-10 drop-shadow-[0_2px_10px_rgba(245,158,11,0.5)]" />
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 rounded-full p-1 border-2 border-slate-950 shadow-md">
-              <Award className="w-4 h-4 font-bold" />
-            </div>
-          </div>
-
-          <h1 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-amber-100 tracking-wide uppercase">
+      <header className="w-full pt-10 pb-4 px-4 text-center z-10 flex flex-col items-center">
+        {/* Unit Title */}
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-300 to-amber-100 tracking-wider uppercase drop-shadow-lg">
             CÔNG AN XÃ CHIỀNG SINH
           </h1>
-          <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1 flex items-center space-x-1.5">
-            <Building2 className="w-3.5 h-3.5 text-amber-400" />
-            <span>Hệ Thống Theo Dõi Tiến Độ Công Tác & Đôn Đốc Báo Cáo</span>
+          <p className="text-xs sm:text-sm font-medium text-amber-200/90 flex items-center justify-center space-x-1.5 pt-1">
+            <Building2 className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Hệ Thống Theo Dõi Tiến Độ Công Tác & Đôn Đốc Báo Cáo Nội Bộ</span>
           </p>
         </div>
       </header>
 
-      {/* Center Login Box */}
-      <main className="w-full max-w-md px-4 py-2 z-10 my-auto">
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/80 relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-700 to-amber-600 text-white text-[11px] font-bold px-4 py-0.5 rounded-full uppercase tracking-wider shadow-md border border-amber-400/30 flex items-center space-x-1">
-            <Lock className="w-3 h-3 text-amber-300" />
-            <span>Xác thực CAND nội bộ</span>
+      {/* Center Login Form Container */}
+      <main className="w-full max-w-md px-4 py-4 z-10 my-auto">
+        <div className="bg-slate-900/90 backdrop-blur-xl border-2 border-amber-500/40 rounded-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.9)] relative overflow-hidden">
+          {/* Top Golden Header Bar */}
+          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-red-600 via-amber-400 to-emerald-600" />
+
+          {/* Security Tag */}
+          <div className="inline-flex items-center space-x-1.5 bg-red-950/90 border border-red-500/50 text-red-200 text-[10px] sm:text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm mb-4 mx-auto w-full justify-center">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>BẢO MẬT CAO — DÀNH CHO CÁN BỘ CÔNG AN XÃ</span>
           </div>
 
-          <div className="text-center mt-2 mb-6">
-            <h2 className="text-lg font-bold text-slate-100">Đăng Nhập Tài Khoản Đơn Vị</h2>
-            <p className="text-xs text-slate-400 mt-1">Vui lòng nhập tài khoản được cấp để truy cập hệ thống</p>
+          <div className="text-center mb-6">
+            <h3 className="text-base sm:text-lg font-black text-amber-100 uppercase tracking-wide">
+              Đăng Nhập Tài Khoản Công Tác
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Nhập tên tài khoản và mật khẩu được Ban Chỉ Huy phân công
+            </p>
           </div>
 
           {/* Alert Messages */}
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-950/80 border border-red-700/80 rounded-xl flex items-start space-x-2.5 text-red-200 text-xs animate-shake">
+            <div className="mb-4 p-3 bg-red-950/90 border border-red-600 rounded-xl flex items-start space-x-2.5 text-red-200 text-xs animate-shake">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3 bg-emerald-950/80 border border-emerald-700/80 rounded-xl flex items-center space-x-2.5 text-emerald-200 text-xs">
+            <div className="mb-4 p-3 bg-emerald-950/90 border border-emerald-600 rounded-xl flex items-center space-x-2.5 text-emerald-200 text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -205,7 +192,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Username field */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center space-x-1">
+              <label className="block text-xs font-bold text-slate-200 mb-1.5 flex items-center space-x-1.5">
                 <UserIcon className="w-3.5 h-3.5 text-amber-400" />
                 <span>Tên tài khoản đơn vị</span>
               </label>
@@ -216,85 +203,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Ví dụ: caxchiengsinh.db"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono transition-all placeholder:text-slate-600"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all placeholder:text-slate-600 shadow-inner"
                 />
-                <Shield className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <Shield className="w-4 h-4 text-amber-500/70 absolute left-3.5 top-3.5" />
               </div>
             </div>
 
             {/* Password field */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center space-x-1">
+              <label className="block text-xs font-bold text-slate-200 mb-1.5 flex items-center space-x-1.5">
                 <Key className="w-3.5 h-3.5 text-amber-400" />
-                <span>Mật khẩu</span>
+                <span>Mật khẩu bảo mật</span>
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mật khẩu được cấp"
+                  placeholder="••••••••••••"
                   required
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono transition-all placeholder:text-slate-600"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all placeholder:text-slate-600 shadow-inner"
                 />
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <Lock className="w-4 h-4 text-amber-500/70 absolute left-3.5 top-3.5" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-3 p-1 text-slate-500 hover:text-slate-200 transition-colors cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </div>
-            </div>
-
-            {/* Quick Fill Buttons for Convenience */}
-            <div className="pt-1">
-              <p className="text-[11px] text-slate-400 mb-2 font-medium flex items-center justify-between">
-                <span>Chọn nhanh tài khoản thử nghiệm:</span>
-                <Sparkles className="w-3 h-3 text-amber-400" />
-              </p>
-              
-              {/* Chief account highlighted */}
-              <div className="mb-2">
-                <button
-                  type="button"
-                  onClick={() => handleFillAccountByKey('caxchiengsinh.db')}
-                  className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-red-950/80 to-amber-950/80 hover:from-red-900 hover:to-amber-900 border border-amber-500/50 text-left transition-all text-xs flex items-center justify-between shadow-sm cursor-pointer"
-                >
-                  <div className="flex items-center space-x-2">
-                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <p className="font-bold text-amber-300">Trưởng Công an xã (Quyền xóa CV)</p>
-                      <p className="text-slate-400 font-mono text-[10px]">caxchiengsinh.db | chiengsinh123@</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
-                    Trưởng CAX
-                  </span>
-                </button>
-              </div>
-
-              {/* 6 Officers & Organization Teams Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                {[
-                  { key: 'nhanviencax.cs', label: 'Cán bộ CAX', role: 'nhanvien123@' },
-                  { key: 'tonghop.cs', label: 'Tổ Tổng hợp', role: 'tonghop123@' },
-                  { key: 'aninh.cs', label: 'Tổ An ninh', role: 'anninh123@' },
-                  { key: 'cskv.cs', label: 'Tổ CSKV', role: 'cskv123@' },
-                  { key: 'pctp.cs', label: 'Tổ PCTP', role: 'pctp123@' },
-                  { key: 'cstt.cs', label: 'Tổ CSTT', role: 'cstt123@' },
-                ].map((acc) => (
-                  <button
-                    key={acc.key}
-                    type="button"
-                    onClick={() => handleFillAccountByKey(acc.key)}
-                    className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/50 text-left transition-all cursor-pointer"
-                  >
-                    <p className="font-bold text-blue-300 text-[11px] truncate">{acc.label}</p>
-                    <p className="text-slate-400 font-mono text-[10px] truncate">{acc.key}</p>
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -302,7 +239,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-red-700 via-red-800 to-amber-700 hover:from-red-600 hover:to-amber-600 text-amber-100 font-bold text-sm shadow-lg shadow-red-900/40 border border-amber-400/30 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              className="w-full mt-4 py-3.5 px-4 rounded-xl bg-gradient-to-r from-red-700 via-red-800 to-amber-700 hover:from-red-600 hover:to-amber-600 text-amber-100 font-bold text-sm shadow-xl shadow-red-950/60 border border-amber-400/50 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 uppercase tracking-wider"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-amber-200 border-t-transparent rounded-full animate-spin" />
@@ -318,14 +255,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </main>
 
       {/* Footer */}
-      <footer className="w-full py-4 text-center z-10 px-4 text-[11px] text-slate-500 border-t border-slate-900 bg-slate-950/60">
-        <p className="font-medium text-slate-400">
-          🔒 Hệ thống Quản lý Nội bộ - Công an xã Chiềng Sinh, TP. Sơn La / Tỉnh Điện Biên
+      <footer className="w-full py-4 text-center z-10 px-4 text-[11px] text-slate-400 border-t border-slate-900 bg-slate-950/80 backdrop-blur-md">
+        <p className="font-semibold text-slate-300">
+          🔒 Hệ thống Quản lý Nội bộ — Công an xã Chiềng Sinh
         </p>
-        <p className="text-[10px] text-slate-600 mt-0.5">
-          Bản quyền thuộc Công an xã Chiềng Sinh. Mọi hành vi truy cập trái phép sẽ bị xử lý theo quy định pháp luật.
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          Bản quyền thuộc Công an xã Chiềng Sinh. Mọi hành vi truy cập trái phép sẽ bị xử lý theo quy định của Luật An ninh mạng.
         </p>
       </footer>
     </div>
   );
 };
+

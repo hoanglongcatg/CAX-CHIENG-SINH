@@ -51,7 +51,6 @@ interface NavbarProps {
   onOpenCreateModal: () => void;
   unreadNotifsCount: number;
   onAuthChange?: (isLoggedIn: boolean) => void;
-  onOpenAiAssistant?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -60,8 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   stats,
   onOpenCreateModal,
   unreadNotifsCount,
-  onAuthChange,
-  onOpenAiAssistant
+  onAuthChange
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [policeUser, setPoliceUser] = useState<CustomPoliceUser | null>(() => {
@@ -335,16 +333,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
                 </span>
               )}
-            </button>
-
-            {/* AI Assistant Button */}
-            <button
-              onClick={onOpenAiAssistant}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-red-800 via-amber-700 to-amber-600 hover:from-red-700 hover:to-amber-500 text-amber-100 font-bold text-xs shadow-md border border-amber-400/30 transition-all cursor-pointer active:scale-95 group"
-              title="Mở Trợ lý AI Công an xã Chiềng Sinh (Gemini AI)"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse group-hover:rotate-12 transition-transform" />
-              <span className="hidden md:inline">Trợ lý AI</span>
             </button>
 
             {/* Create Task Button - Only rendered when logged in */}

@@ -5,7 +5,6 @@ import * as XLSX from 'xlsx';
 import { 
   FileSpreadsheet, 
   Printer, 
-  Sparkles, 
   Calendar, 
   Building2, 
   Download, 
@@ -13,7 +12,6 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
-  Loader2,
   Share2
 } from 'lucide-react';
 
@@ -30,10 +28,6 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
   const [periodName, setPeriodName] = useState<string>('Tuần này (T7/2026)');
   const [selectedDeptId, setSelectedDeptId] = useState<string>('all');
 
-  // AI Loading & Result state
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
-
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeDepts = Array.isArray(departments) ? departments : [];
   const selectedDeptObj = safeDepts.find(d => d.id === selectedDeptId);
@@ -45,46 +39,6 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
 
   const stats = calculateTaskStats(filteredTasks);
   const overdueTasks = filteredTasks.filter(t => t.status === 'overdue' || (t.dueDate < getTodayString() && t.status !== 'completed'));
-
-  // Call Gemini API server backend
-  const handleGenerateAiReport = async () => {
-    setIsAiLoading(true);
-    setAiAnalysisResult(null);
-
-    try {
-      const response = await fetch('/api/reports/generate-ai-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportType,
-          periodName,
-          departmentName: selectedDeptObj ? selectedDeptObj.name : 'Toàn Đơn Vị',
-          stats,
-          overdueTasks: overdueTasks.map(t => ({
-            code: t.code,
-            title: t.title,
-            department: t.departmentName,
-            assignee: t.assigneeName,
-            dueDate: t.dueDate,
-            daysOverdue: Math.max(1, Math.ceil((new Date().getTime() - new Date(t.dueDate).getTime()) / (1000*3600*24)))
-          })),
-          totalTasks: filteredTasks.length
-        })
-      });
-
-      const data = await response.json();
-      if (response.ok && data.summary) {
-        setAiAnalysisResult(data.summary);
-      } else {
-        setAiAnalysisResult("❌ Lỗi khi tổng hợp báo cáo AI: " + (data.error || "Vui lòng thử lại."));
-      }
-    } catch (e: any) {
-      console.error("Lỗi gọi API AI report:", e);
-      setAiAnalysisResult("❌ Không thể kết nối máy chủ AI. Vui lòng kiểm tra GEMINI_API_KEY.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   // Export Excel (.XLSX)
   const handleExportExcel = () => {
@@ -152,7 +106,7 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
         <div>
           <h1 className="text-xl font-bold text-slate-800 flex items-center space-x-2">
             <FileSpreadsheet className="w-6 h-6 text-blue-600" />
-            <span>TỰ ĐỘNG XUẤT BÁO CÁO TIẾN ĐỘ & PHÂN TÍCH AI</span>
+            <span>TỰ ĐỘNG XUẤT BÁO CÁO TIẾN ĐỘ</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Tổng hợp dữ liệu báo cáo tuần/tháng, kết xuất Excel và bản in PDF chuẩn văn bản hành chính công vụ
@@ -161,15 +115,6 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleGenerateAiReport}
-            disabled={isAiLoading}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm rounded-lg shadow-md transition-all cursor-pointer flex items-center space-x-2 disabled:opacity-50"
-          >
-            {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            <span>{isAiLoading ? 'AI Đang Phân Tích...' : 'Phân Tích AI Gemini'}</span>
-          </button>
-
           <button
             onClick={handleExportExcel}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg shadow transition-all cursor-pointer flex items-center space-x-1.5"
@@ -316,47 +261,11 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({
           </div>
         </div>
 
-        {/* II. AI Generated Analysis Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-slate-900 border-l-4 border-purple-600 pl-3 flex items-center space-x-2">
-              <Sparkles className="w-5 h-5 text-purple-600 print:hidden" />
-              <span>II. ĐÁNH GIÁ TỔNG QUAN VÀ PHÂN TÍCH TIẾN ĐỘ (TRỢ LÝ AI TỰ ĐỘNG)</span>
-            </h3>
-
-            {!aiAnalysisResult && (
-              <button
-                onClick={handleGenerateAiReport}
-                disabled={isAiLoading}
-                className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded border border-purple-200 hover:bg-purple-100 print:hidden cursor-pointer"
-              >
-                + Bấm để khởi tạo phân tích AI
-              </button>
-            )}
-          </div>
-
-          {isAiLoading ? (
-            <div className="p-8 bg-purple-50 rounded-xl border border-purple-200 text-center space-y-2">
-              <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto" />
-              <p className="font-bold text-purple-900 text-sm">Hệ thống Gemini AI đang phân tích dữ liệu tiến độ thực tế...</p>
-              <p className="text-xs text-purple-700">Tự động tổng hợp điểm sáng, rủi ro quá hạn và khuyến nghị cho Lãnh đạo</p>
-            </div>
-          ) : aiAnalysisResult ? (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-300 text-xs sm:text-sm text-slate-800 leading-relaxed space-y-3 whitespace-pre-line font-serif">
-              {aiAnalysisResult}
-            </div>
-          ) : (
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs text-slate-600 italic">
-              Bấm nút "Phân Tích AI Gemini" để hệ thống tự động sinh báo cáo nhận xét chi tiết bằng tiếng Việt.
-            </div>
-          )}
-        </div>
-
-        {/* III. Overdue Red Alert Tasks Section */}
+        {/* II. Overdue Red Alert Tasks Section */}
         <div className="space-y-3">
           <h3 className="font-bold text-base text-slate-900 border-l-4 border-red-600 pl-3 flex items-center space-x-2">
             <AlertTriangle className="w-5 h-5 text-red-600 print:hidden" />
-            <span>III. DANH SÁCH CÁC CÔNG VIỆC QUÁ HẠN CẦN ĐÔN ĐỐC XỬ LÝ GẤP</span>
+            <span>II. DANH SÁCH CÁC CÔNG VIỆC QUÁ HẠN CẦN ĐÔN ĐỐC XỬ LÝ GẤP</span>
           </h3>
 
           {overdueTasks.length === 0 ? (
