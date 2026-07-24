@@ -17,7 +17,8 @@ import {
   Calendar,
   Sparkles,
   FileText,
-  RotateCw
+  RotateCw,
+  ShieldCheck
 } from 'lucide-react';
 
 interface TaskListProps {
@@ -31,6 +32,8 @@ interface TaskListProps {
   onOpenCreateModal: () => void;
   isLoggedIn?: boolean;
   onRefreshFromSheets?: () => void;
+  onApproveTask?: (taskId: string) => void;
+  onRejectTask?: (taskId: string) => void;
 }
 
 const PRIORITY_LABELS: Record<string, { label: string; bg: string; text: string }> = {
@@ -55,7 +58,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   onUpdateProgress,
   onOpenCreateModal,
   isLoggedIn = false,
-  onRefreshFromSheets
+  onRefreshFromSheets,
+  onApproveTask,
+  onRejectTask
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('all');
@@ -216,6 +221,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">-- Tất cả Trạng thái --</option>
+              <option value="pending_approval" className="text-amber-600 font-bold">🟡 CHỜ TRƯỞNG CAX PHÊ DUYỆT</option>
               <option value="overdue" className="text-red-600 font-bold">🔴 CẢNH BÁO QUÁ HẠN</option>
               <option value="in_progress">🔵 Đang thực hiện</option>
               <option value="todo">⚪ Chưa thực hiện</option>
@@ -388,6 +394,16 @@ export const TaskList: React.FC<TaskListProps> = ({
                             <AlertTriangle className="w-3.5 h-3.5" />
                             <span>🔴 CẢNH BÁO ĐỎ</span>
                           </span>
+                        ) : task.status === 'pending_approval' || task.approvalStatus === 'pending' ? (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-400 font-bold text-xs px-2.5 py-1 rounded-md shadow-sm inline-flex items-center space-x-1 animate-pulse">
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                            <span>🟡 Chờ CAX Duyệt</span>
+                          </span>
+                        ) : task.approvalStatus === 'approved' || (task.status === 'completed' && task.isEarlyCompletion) ? (
+                          <span className="bg-emerald-100 text-emerald-900 font-bold text-xs px-2.5 py-1 rounded-md border border-emerald-400 inline-flex items-center space-x-1 shadow-sm">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>🛡️ CAX Duyệt Sớm</span>
+                          </span>
                         ) : task.status === 'completed' ? (
                           <span className="bg-emerald-100 text-emerald-800 font-semibold text-xs px-2.5 py-1 rounded-md border border-emerald-300 inline-flex items-center space-x-1">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -412,6 +428,50 @@ export const TaskList: React.FC<TaskListProps> = ({
                       {/* Actions */}
                       <td className="py-3.5 px-4 align-top text-right space-y-1">
                         <div className="flex items-center justify-end space-x-1">
+                          {/* Report Completion Button for Teams (non-completed & non-pending tasks) */}
+                          {task.status !== 'completed' && task.status !== 'pending_approval' && (
+                            <button
+                              onClick={() => {
+                                setEditingProgressTask(task);
+                                setProgressValue(100);
+                                setProgressNotes(task.notes || 'Tổ công tác đã hoàn thành 100% nội dung chỉ đạo, kính trình Trưởng Công an xã phê duyệt.');
+                              }}
+                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded shadow border border-amber-400 flex items-center space-x-1 cursor-pointer transition-all active:scale-95"
+                              title="Báo cáo hoàn thành nhiệm vụ cho tổ — Trình Trưởng Công an xã phê duyệt"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
+                              <span>Báo Hoàn Thành</span>
+                            </button>
+                          )}
+
+                          {/* Pending Approval Badge / View for Teams */}
+                          {(task.status === 'pending_approval' || task.approvalStatus === 'pending') && !isChiefOfPolice && (
+                            <span 
+                              onClick={() => onSelectTask(task)}
+                              className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs rounded flex items-center space-x-1 cursor-pointer animate-pulse"
+                              title="Tổ đã trình Trưởng Công an xã phê duyệt — Bấm để xem chi tiết"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Đã Trình CAX</span>
+                            </span>
+                          )}
+
+                          {/* Quick Approve Button for Chief of Police */}
+                          {isChiefOfPolice && (task.status === 'pending_approval' || task.approvalStatus === 'pending' || (task.progress === 100 && task.status !== 'completed')) && (
+                            <button
+                              onClick={() => {
+                                if (onApproveTask) {
+                                  onApproveTask(task.id);
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold text-xs rounded shadow border border-emerald-400 flex items-center space-x-1 cursor-pointer transition-all active:scale-95 animate-bounce"
+                              title="Trưởng Công an xã Phê duyệt hoàn thành sớm"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Phê Duyệt</span>
+                            </button>
+                          )}
+
                           {/* Send Reminder Email */}
                           <button
                             onClick={() => onSendReminderEmail(task)}
@@ -434,14 +494,26 @@ export const TaskList: React.FC<TaskListProps> = ({
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* Edit */}
-                          <button
-                            onClick={() => onEditTask(task)}
-                            className="p-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all cursor-pointer"
-                            title="Sửa công việc"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
+                          {/* Edit - Restricted to Chief of Police */}
+                          {isChiefOfPolice ? (
+                            <button
+                              onClick={() => onEditTask(task)}
+                              className="p-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all cursor-pointer"
+                              title="Sửa công việc (Dành cho Trưởng Công an xã)"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                alert('⚠️ Quyền hạn bị hạn chế: Chỉ tài khoản Trưởng Công an xã mới có quyền chỉnh sửa nội dung công việc!');
+                              }}
+                              className="p-1.5 rounded bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+                              title="Chỉ Trưởng Công an xã mới có quyền chỉnh sửa"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Delete - Restricted to Chief of Police */}
                           {isChiefOfPolice ? (
@@ -535,9 +607,20 @@ export const TaskList: React.FC<TaskListProps> = ({
               </button>
               <button
                 onClick={handleSaveProgress}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow cursor-pointer"
+                className={`px-4 py-2 rounded-lg font-bold text-xs shadow cursor-pointer flex items-center space-x-1 transition-all ${
+                  progressValue === 100 
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border border-amber-400' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
-                Lưu Tiến Độ
+                {progressValue === 100 ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-amber-200" />
+                    <span>Báo Hoàn Thành (Trình CAX Duyệt)</span>
+                  </>
+                ) : (
+                  <span>Lưu Tiến Độ</span>
+                )}
               </button>
             </div>
           </div>

@@ -18,7 +18,8 @@ import {
   BarChart3,
   PieChart as PieIcon,
   ShieldAlert,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -86,7 +87,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const overdueTasks = filteredTasks.filter(t => {
     if (!t) return false;
     const taskDueDate = t.dueDate || todayStr;
-    return t.status === 'overdue' || (taskDueDate < todayStr && t.status !== 'completed' && t.status !== 'on_hold');
+    return t.status === 'overdue' || (taskDueDate < todayStr && t.status !== 'completed' && t.status !== 'on_hold' && t.status !== 'pending_approval');
+  });
+
+  // Extract tasks pending early completion approval
+  const pendingApprovalTasks = filteredTasks.filter(t => {
+    if (!t) return false;
+    return t.status === 'pending_approval' || t.approvalStatus === 'pending';
   });
 
   // Chart Data: Status Pie Chart
@@ -137,6 +144,74 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </select>
         </div>
       </div>
+
+      {/* 🟡 AMBER BANNER FOR TASKS PENDING EARLY COMPLETION APPROVAL */}
+      {pendingApprovalTasks.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-500 rounded-xl p-5 shadow-md relative overflow-hidden animate-fade-in">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 bg-amber-600 text-white rounded-lg shadow-md animate-pulse">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-bold text-amber-950 tracking-tight">
+                    THÔNG BÁO DÀNH CHO TRƯỞNG CÔNG AN XÃ: CÓ {pendingApprovalTasks.length} NHIỆM VỤ HOÀN THÀNH SỚM ĐANG TRÌNH PHÊ DUYỆT!
+                  </h2>
+                  <span className="bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    Cần phê duyệt
+                  </span>
+                </div>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Cán bộ các tổ công tác đã hoàn thành 100% nhiệm vụ trước thời hạn. Đề nghị Trưởng Công an xã rà soát sản phẩm và phê duyệt.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onNavigateToTable}
+              className="text-xs font-bold text-amber-900 flex items-center space-x-1 bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg border border-amber-400 transition-all cursor-pointer shadow-sm"
+            >
+              <span>Phê duyệt ngay</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {pendingApprovalTasks.slice(0, 3).map((task) => (
+              <div 
+                key={task.id}
+                onClick={() => onSelectTask(task)}
+                className="bg-white rounded-lg border border-amber-300 p-3.5 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="font-mono font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded">
+                      {task.code}
+                    </span>
+                    <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-300 flex items-center space-x-1">
+                      <ShieldCheck className="w-3 h-3 text-amber-600" />
+                      <span>Chờ CAX Duyệt</span>
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-slate-900 text-sm hover:text-blue-600 line-clamp-2">
+                    {task.title}
+                  </h3>
+                  <div className="mt-2 text-xs text-slate-600 space-y-1">
+                    <p><span className="font-medium text-slate-500">Cán bộ thực hiện:</span> <strong className="text-slate-900">{task.assigneeName}</strong></p>
+                    <p><span className="font-medium text-slate-500">Hạn giao ban đầu:</span> <span className="text-slate-800 font-semibold">{task.dueDate}</span></p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-100 text-right">
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 inline-block">
+                    ✓ Hoàn thành 100% trước hạn
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 🔴 RED ALERT BANNER FOR OVERDUE TASKS (If overdue > 0) */}
       {overdueTasks.length > 0 && (

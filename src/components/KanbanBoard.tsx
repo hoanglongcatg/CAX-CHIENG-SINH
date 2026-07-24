@@ -10,7 +10,8 @@ import {
   Calendar, 
   Send,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  ShieldCheck
 } from 'lucide-react';
 
 interface KanbanBoardProps {
@@ -28,14 +29,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 }) => {
   const today = getTodayString();
 
+  const currentUserStr = localStorage.getItem('chiengsinh_police_user');
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const isChiefOfPolice = currentUser?.username === 'caxchiengsinh.db';
+
   // Group tasks by status column
   const todoTasks = tasks.filter(t => t.status === 'todo');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
-  const overdueTasks = tasks.filter(t => t.status === 'overdue' || (t.dueDate < today && t.status !== 'completed'));
+  const pendingApprovalTasks = tasks.filter(t => t.status === 'pending_approval' || t.approvalStatus === 'pending');
+  const overdueTasks = tasks.filter(t => t.status === 'overdue' || (t.dueDate < today && t.status !== 'completed' && t.status !== 'pending_approval'));
   const completedTasks = tasks.filter(t => t.status === 'completed');
 
   const renderTaskCard = (task: Task) => {
-    const isOverdue = task.status === 'overdue' || (task.dueDate < today && task.status !== 'completed');
+    const isOverdue = task.status === 'overdue' || (task.dueDate < today && task.status !== 'completed' && task.status !== 'pending_approval');
+    const isPendingApproval = task.status === 'pending_approval' || task.approvalStatus === 'pending';
+    const isEarlyApproved = task.approvalStatus === 'approved' || (task.status === 'completed' && task.isEarlyCompletion);
     const daysDiff = getDaysDifference(task.dueDate);
 
     return (
@@ -44,14 +52,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         className={`bg-white rounded-xl p-4 border shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
           isOverdue 
             ? 'border-red-400 bg-red-50/70 text-red-950' 
+            : isPendingApproval 
+            ? 'border-amber-400 bg-amber-50/80 text-amber-950' 
             : 'border-slate-200'
         }`}
       >
         <div>
-          {/* Header Code & Overdue Badge */}
+          {/* Header Code & Badges */}
           <div className="flex items-center justify-between text-xs mb-2">
             <span className={`font-mono font-bold px-2 py-0.5 rounded ${
-              isOverdue ? 'bg-red-200 text-red-900 border border-red-300' : 'bg-slate-100 text-slate-700'
+              isOverdue ? 'bg-red-200 text-red-900 border border-red-300' : isPendingApproval ? 'bg-amber-200 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-700'
             }`}>
               {task.code}
             </span>
@@ -59,6 +69,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <span className="bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse flex items-center space-x-1">
                 <AlertTriangle className="w-3 h-3" />
                 <span>QUÁ HẠN {Math.abs(daysDiff)} NGÀY</span>
+              </span>
+            )}
+            {isPendingApproval && (
+              <span className="bg-amber-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse flex items-center space-x-1">
+                <ShieldCheck className="w-3 h-3 text-amber-200" />
+                <span>CHỜ CAX DUYỆT</span>
+              </span>
+            )}
+            {isEarlyApproved && (
+              <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-200" />
+                <span>DUYỆT SỚM</span>
               </span>
             )}
           </div>
@@ -125,13 +147,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               </button>
             )}
 
-            {task.status !== 'completed' && (
+            {task.status !== 'completed' && task.status !== 'pending_approval' && (
               <button
                 onClick={() => onUpdateStatus(task.id, 'completed')}
-                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold rounded cursor-pointer"
-                title="Đánh dấu đã hoàn thành"
+                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded cursor-pointer flex items-center space-x-1 shadow-sm transition-all active:scale-95"
+                title="Báo hoàn thành nhiệm vụ cho tổ — Trình Trưởng CAX phê duyệt"
               >
-                ✓ Xong
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
+                <span>Báo Hoàn Thành</span>
+              </button>
+            )}
+
+            {isPendingApproval && isChiefOfPolice && (
+              <button
+                onClick={() => onUpdateStatus(task.id, 'completed')}
+                className="px-2 py-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-[11px] font-extrabold rounded cursor-pointer flex items-center space-x-1 shadow animate-bounce"
+                title="Trưởng Công an xã Phê duyệt hoàn thành"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Phê Duyệt</span>
               </button>
             )}
           </div>
@@ -149,7 +183,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3">
         {/* Column 1: Todo */}
         <div className="bg-slate-100 rounded-xl p-3 border border-slate-200 flex flex-col space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-300">
@@ -184,12 +218,35 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           </div>
         </div>
 
-        {/* Column 3: OVERDUE RED ALERT COLUMN */}
+        {/* Column 3: PENDING APPROVAL COLUMN */}
+        <div className="bg-amber-100/80 rounded-xl p-3 border-2 border-amber-400 flex flex-col space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-amber-300">
+            <h3 className="font-bold text-amber-950 text-sm flex items-center space-x-1.5 animate-pulse">
+              <ShieldCheck className="w-4 h-4 text-amber-600" />
+              <span>🟡 CHỜ CAX DUYỆT</span>
+            </h3>
+            <span className="bg-amber-600 text-white text-xs font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+              {pendingApprovalTasks.length}
+            </span>
+          </div>
+
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+            {pendingApprovalTasks.length === 0 ? (
+              <p className="text-center text-xs text-amber-800 py-8 italic font-medium">
+                Không có nhiệm vụ chờ phê duyệt.
+              </p>
+            ) : (
+              pendingApprovalTasks.map(renderTaskCard)
+            )}
+          </div>
+        </div>
+
+        {/* Column 4: OVERDUE RED ALERT COLUMN */}
         <div className="bg-red-100/70 rounded-xl p-3 border-2 border-red-400 flex flex-col space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-red-300">
             <h3 className="font-bold text-red-900 text-sm flex items-center space-x-1.5 animate-pulse">
               <AlertTriangle className="w-4 h-4 text-red-600" />
-              <span>🔴 CẢNH BÁO QUÁ HẠN</span>
+              <span>🔴 QUÁ HẠN</span>
             </h3>
             <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">
               {overdueTasks.length}
@@ -199,7 +256,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           <div className="space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
             {overdueTasks.length === 0 ? (
               <p className="text-center text-xs text-red-700 py-8 italic font-medium">
-                🎉 Tuyệt vời! Không có công việc quá hạn.
+                🎉 Không có công việc quá hạn.
               </p>
             ) : (
               overdueTasks.map(renderTaskCard)
@@ -207,7 +264,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           </div>
         </div>
 
-        {/* Column 4: Completed */}
+        {/* Column 5: Completed */}
         <div className="bg-emerald-50/60 rounded-xl p-3 border border-emerald-200 flex flex-col space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-emerald-300">
             <h3 className="font-bold text-emerald-900 text-sm flex items-center space-x-2">

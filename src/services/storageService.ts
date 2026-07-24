@@ -177,7 +177,7 @@ export function calculateTaskStats(tasks: Task[]): TaskStats {
   const total = safeTasks.length;
   if (total === 0) {
     return {
-      total: 0, completed: 0, inProgress: 0, todo: 0, onHold: 0, overdue: 0, dueSoon: 0, completionRate: 0, overdueRate: 0
+      total: 0, completed: 0, inProgress: 0, todo: 0, onHold: 0, overdue: 0, pendingApproval: 0, earlyCompleted: 0, dueSoon: 0, completionRate: 0, overdueRate: 0
     };
   }
 
@@ -187,15 +187,22 @@ export function calculateTaskStats(tasks: Task[]): TaskStats {
   let todo = 0;
   let onHold = 0;
   let overdue = 0;
+  let pendingApproval = 0;
+  let earlyCompleted = 0;
   let dueSoon = 0;
 
   safeTasks.forEach(t => {
     if (!t) return;
     const taskDueDate = t.dueDate || today;
-    const isOverdue = t.status === 'overdue' || (taskDueDate < today && t.status !== 'completed' && t.status !== 'on_hold');
+    const isOverdue = t.status === 'overdue' || (taskDueDate < today && t.status !== 'completed' && t.status !== 'on_hold' && t.status !== 'pending_approval');
 
     if (t.status === 'completed') {
       completed++;
+      if (t.isEarlyCompletion || (t.completedAt && t.completedAt < taskDueDate)) {
+        earlyCompleted++;
+      }
+    } else if (t.status === 'pending_approval' || t.approvalStatus === 'pending') {
+      pendingApproval++;
     } else if (t.status === 'on_hold') {
       onHold++;
     } else if (isOverdue) {
@@ -225,6 +232,8 @@ export function calculateTaskStats(tasks: Task[]): TaskStats {
     todo,
     onHold,
     overdue,
+    pendingApproval,
+    earlyCompleted,
     dueSoon,
     completionRate,
     overdueRate

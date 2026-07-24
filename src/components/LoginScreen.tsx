@@ -57,13 +57,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         badgeNumber: 'CAS-3001'
       }
     },
-    'aninh.cs': {
+    'anninh.cs': {
       pass: 'anninh123@',
       user: {
-        username: 'aninh.cs',
+        username: 'anninh.cs',
         displayName: 'Cán bộ Tổ An ninh',
         role: 'Tổ An Ninh',
-        email: 'aninh.cs@congan.dienbien.gov.vn',
+        email: 'anninh.cs@congan.dienbien.gov.vn',
         badgeNumber: 'CAS-3002'
       }
     },

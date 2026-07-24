@@ -11,8 +11,16 @@ export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<b
     const deptNameVal = taskData.departmentName || (taskData as any).department || 'Tổ Tổng hợp';
     const assigneeNameVal = taskData.assigneeName || (taskData as any).assignee || 'Cán bộ chưa phân công';
 
+    const statusText = 
+      taskData.status === 'completed' ? 'Đã hoàn thành' :
+      taskData.status === 'pending_approval' ? 'Chờ Trưởng CAX phê duyệt' :
+      taskData.status === 'in_progress' ? 'Đang thực hiện' :
+      taskData.status === 'overdue' ? 'Quá hạn' :
+      taskData.status === 'on_hold' ? 'Tạm dừng' :
+      'Chưa thực hiện';
+
     const payload = {
-      action: 'createTask',
+      action: 'updateTask',
       id: codeVal,
       code: codeVal,
       'Mã CV': codeVal,
@@ -50,11 +58,18 @@ export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<b
       priority: taskData.priority || '',
       'Độ ưu tiên': taskData.priority || '',
       status: taskData.status || '',
-      'Trạng thái': taskData.status || '',
+      'Trạng thái': statusText,
       progress: taskData.progress ?? 0,
       'Tiến độ': taskData.progress ?? 0,
       deliverable: taskData.deliverable || '',
       notes: taskData.notes || '',
+      'Ghi chú': taskData.notes || '',
+      approvalStatus: taskData.approvalStatus || '',
+      isEarlyCompletion: taskData.isEarlyCompletion ? 'Có' : 'Không',
+      approvedBy: taskData.approvedBy || '',
+      approvedAt: taskData.approvedAt || '',
+      completedAt: taskData.completedAt || '',
+      approvalNote: taskData.approvalNote || '',
       createdAt: taskData.createdAt || new Date().toISOString(),
       updatedAt: taskData.updatedAt || new Date().toISOString()
     };
@@ -233,7 +248,9 @@ export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
         // Status normalization
         const rawStatus = String(getVal(item, ['Trạng thái', 'status', 'Tình trạng', '6', 'colG', 'col_G', 'G']) || 'todo').toLowerCase();
         let status: Task['status'] = 'todo';
-        if (rawStatus.includes('hoàn thành') || rawStatus.includes('completed') || rawStatus.includes('xong') || rawStatus.includes('done')) {
+        if (rawStatus.includes('chờ') || rawStatus.includes('pending') || rawStatus.includes('duyệt') || rawStatus.includes('trình')) {
+          status = 'pending_approval';
+        } else if (rawStatus.includes('hoàn thành') || rawStatus.includes('completed') || rawStatus.includes('xong') || rawStatus.includes('done')) {
           status = 'completed';
         } else if (rawStatus.includes('đang') || rawStatus.includes('in_progress') || rawStatus.includes('progress') || rawStatus.includes('doing')) {
           status = 'in_progress';

@@ -226,42 +226,235 @@ export default function App() {
     showToast('🗑️ Đã xóa công việc khỏi hệ thống.');
   };
 
-  const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
+  const currentUserStr = localStorage.getItem('chiengsinh_police_user');
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const isChiefOfPolice = currentUser?.username === 'caxchiengsinh.db';
+
+  // Task Approval Handlers for Chief of Police
+  const handleApproveTask = (taskId: string, note?: string) => {
+    const today = getTodayString();
+    let approvedCode = '';
+    let updatedTaskObj: Task | null = null;
+    
     const updatedTasks = tasks.map(t => {
       if (t.id === taskId) {
-        return {
+        approvedCode = t.code;
+        updatedTaskObj = {
           ...t,
-          status: newStatus,
-          progress: newStatus === 'completed' ? 100 : t.progress,
-          completedAt: newStatus === 'completed' ? getTodayString() : t.completedAt
+          status: 'completed' as TaskStatus,
+          progress: 100,
+          approvalStatus: 'approved' as const,
+          isEarlyCompletion: true,
+          approvedBy: 'Trưởng Công an xã Chiềng Sinh',
+          approvedAt: today,
+          completedAt: today,
+          approvalNote: note || 'Trưởng CAX đã phê duyệt biểu dương thành tích hoàn thành sớm.'
         };
+        return updatedTaskObj;
       }
       return t;
     });
 
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
-    showToast(newStatus === 'completed' ? '🎉 Đã xác nhận hoàn thành công việc!' : '✅ Đã cập nhật trạng thái.');
+
+    if (updatedTaskObj) {
+      sendTaskToGoogleSheets(updatedTaskObj);
+    }
+
+    const approvedTask = tasks.find(t => t.id === taskId);
+
+    if (approvedTask) {
+      const newNotif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        taskId: approvedTask.id,
+        taskCode: approvedTask.code,
+        taskTitle: approvedTask.title,
+        recipientType: 'officer',
+        recipientName: approvedTask.assigneeName,
+        recipientEmail: approvedTask.assigneeEmail,
+        type: 'assignment',
+        title: `🛡️ TRƯỞNG CAX PHÊ DUYỆT HOÀN THÀNH SỚM: ${approvedTask.code}`,
+        content: `Trưởng Công an xã đã chính thức phê duyệt thành tích hoàn thành sớm nhiệm vụ "${approvedTask.title}". Ghi nhận và biểu dương tinh thần làm việc xuất sắc của đồng chí!`,
+        sentAt: `${getTodayString()} ${new Date().toLocaleTimeString('vi-VN')}`,
+        read: false,
+        isEmailSent: true
+      };
+      const updatedNotifs = [newNotif, ...notifications];
+      setNotifications(updatedNotifs);
+      saveNotifications(updatedNotifs);
+    }
+
+    showToast(`🛡️ Trưởng CAX đã phê duyệt ghi nhận hoàn thành sớm công việc [${approvedCode || taskId}]!`);
+  };
+
+  const handleRejectTask = (taskId: string, note?: string) => {
+    let rejectedCode = '';
+    let updatedTaskObj: Task | null = null;
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId) {
+        rejectedCode = t.code;
+        updatedTaskObj = {
+          ...t,
+          status: 'in_progress' as TaskStatus,
+          approvalStatus: 'rejected' as const,
+          approvalNote: note || 'Trưởng CAX yêu cầu bổ sung sản phẩm hoàn thiện.'
+        };
+        return updatedTaskObj;
+      }
+      return t;
+    });
+
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
+
+    if (updatedTaskObj) {
+      sendTaskToGoogleSheets(updatedTaskObj);
+    }
+
+    const rejectedTask = tasks.find(t => t.id === taskId);
+
+    if (rejectedTask) {
+      const newNotif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        taskId: rejectedTask.id,
+        taskCode: rejectedTask.code,
+        taskTitle: rejectedTask.title,
+        recipientType: 'officer',
+        recipientName: rejectedTask.assigneeName,
+        recipientEmail: rejectedTask.assigneeEmail,
+        type: 'reminder',
+        title: `❌ YÊU CẦU CHỈNH SỬA TỪ TRƯỞNG CAX: ${rejectedTask.code}`,
+        content: `Trưởng CAX yêu cầu chỉnh sửa/bổ sung công việc "${rejectedTask.title}". Ý kiến chỉ đạo: ${note || 'Cần bổ sung hoàn thiện sản phẩm'}.`,
+        sentAt: `${getTodayString()} ${new Date().toLocaleTimeString('vi-VN')}`,
+        read: false,
+        isEmailSent: true
+      };
+      const updatedNotifs = [newNotif, ...notifications];
+      setNotifications(updatedNotifs);
+      saveNotifications(updatedNotifs);
+    }
+
+    showToast(`⚠️ Đã yêu cầu cán bộ bổ sung hoàn thiện lại công việc [${rejectedCode || taskId}]!`);
+  };
+
+  const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
+    const today = getTodayString();
+    let toastMsg = '✅ Đã cập nhật trạng thái.';
+    let updatedTaskObj: Task | null = null;
+
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId) {
+        const isCompletingEarly = (newStatus === 'completed' || newStatus === 'pending_approval') && (t.dueDate >= today);
+
+        if (isCompletingEarly && !isChiefOfPolice) {
+          toastMsg = '🟡 Đã trình Trưởng Công an xã phê duyệt hoàn thành sớm!';
+          updatedTaskObj = {
+            ...t,
+            status: 'pending_approval' as TaskStatus,
+            approvalStatus: 'pending' as const,
+            isEarlyCompletion: true,
+            progress: 100
+          };
+          return updatedTaskObj;
+        } else if (isCompletingEarly && isChiefOfPolice) {
+          toastMsg = '🛡️ [Trưởng CAX] Đã phê duyệt hoàn thành sớm công việc!';
+          updatedTaskObj = {
+            ...t,
+            status: 'completed' as TaskStatus,
+            progress: 100,
+            approvalStatus: 'approved' as const,
+            isEarlyCompletion: true,
+            approvedBy: 'Trưởng Công an xã Chiềng Sinh',
+            approvedAt: today,
+            completedAt: today
+          };
+          return updatedTaskObj;
+        } else {
+          toastMsg = newStatus === 'completed' ? '🎉 Đã xác nhận hoàn thành công việc!' : '✅ Đã cập nhật trạng thái.';
+          updatedTaskObj = {
+            ...t,
+            status: newStatus,
+            progress: newStatus === 'completed' ? 100 : t.progress,
+            completedAt: newStatus === 'completed' ? today : t.completedAt
+          };
+          return updatedTaskObj;
+        }
+      }
+      return t;
+    });
+
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
+
+    if (updatedTaskObj) {
+      sendTaskToGoogleSheets(updatedTaskObj);
+    }
+
+    showToast(toastMsg);
   };
 
   const handleUpdateTaskProgress = (taskId: string, newProgress: number, newNotes?: string) => {
+    const today = getTodayString();
+    let toastMsg = `✅ Đã cập nhật tiến độ ${newProgress}% thành công!`;
+    let updatedTaskObj: Task | null = null;
+
     const updatedTasks = tasks.map(t => {
       if (t.id === taskId) {
         const isDone = newProgress === 100;
-        return {
+        const isEarly = isDone && t.dueDate >= today;
+
+        let finalStatus: TaskStatus = t.status;
+        let approvalStat = t.approvalStatus || 'none';
+        let isEarlyComp = t.isEarlyCompletion || false;
+        let appBy = t.approvedBy;
+        let appAt = t.approvedAt;
+
+        if (isDone) {
+          if (isEarly && !isChiefOfPolice) {
+            finalStatus = 'pending_approval';
+            approvalStat = 'pending';
+            isEarlyComp = true;
+            toastMsg = '🟡 Đã báo cáo 100% tiến độ — Đang trình Trưởng CAX phê duyệt hoàn thành sớm!';
+          } else if (isEarly && isChiefOfPolice) {
+            finalStatus = 'completed';
+            approvalStat = 'approved';
+            isEarlyComp = true;
+            appBy = 'Trưởng Công an xã Chiềng Sinh';
+            appAt = today;
+            toastMsg = '🛡️ [Trưởng CAX] Đã phê duyệt hoàn thành sớm!';
+          } else {
+            finalStatus = 'completed';
+            toastMsg = '🎉 Đã báo cáo hoàn thành 100% nhiệm vụ!';
+          }
+        } else if (newProgress > 0) {
+          finalStatus = 'in_progress';
+        }
+
+        updatedTaskObj = {
           ...t,
           progress: newProgress,
-          status: isDone ? ('completed' as TaskStatus) : (newProgress > 0 ? ('in_progress' as TaskStatus) : t.status),
+          status: finalStatus,
+          approvalStatus: approvalStat as any,
+          isEarlyCompletion: isEarlyComp,
+          approvedBy: appBy,
+          approvedAt: appAt,
           notes: newNotes !== undefined ? newNotes : t.notes,
-          completedAt: isDone ? getTodayString() : t.completedAt
+          completedAt: isDone ? today : t.completedAt
         };
+        return updatedTaskObj;
       }
       return t;
     });
 
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
-    showToast(`✅ Đã cập nhật tiến độ ${newProgress}% thành công!`);
+
+    if (updatedTaskObj) {
+      sendTaskToGoogleSheets(updatedTaskObj);
+    }
+
+    showToast(toastMsg);
   };
 
   // Trigger Instant Email Reminder
@@ -356,6 +549,10 @@ export default function App() {
             departments={departments}
             onSelectTask={setSelectedTaskDetail}
             onEditTask={(task) => {
+              if (!isChiefOfPolice) {
+                showToast('🔒 Chỉ Trưởng Công an xã mới có quyền chỉnh sửa nội dung công việc!');
+                return;
+              }
               setTaskToEdit(task);
               setIsTaskModalOpen(true);
             }}
@@ -371,6 +568,8 @@ export default function App() {
               showToast('🔄 Đang làm mới dữ liệu từ Google Sheets...');
               await fetchAndSyncTasks();
             }}
+            onApproveTask={handleApproveTask}
+            onRejectTask={handleRejectTask}
           />
         )}
 
@@ -424,11 +623,18 @@ export default function App() {
         task={selectedTaskDetail}
         onClose={() => setSelectedTaskDetail(null)}
         onEdit={(task) => {
+          if (!isChiefOfPolice) {
+            showToast('🔒 Chỉ Trưởng Công an xã mới có quyền chỉnh sửa nội dung công việc!');
+            return;
+          }
           setTaskToEdit(task);
           setIsTaskModalOpen(true);
         }}
         onSendEmail={handleSendReminderEmail}
         onUpdateStatus={handleUpdateTaskStatus}
+        onApproveEarlyCompletion={handleApproveTask}
+        onRejectEarlyCompletion={handleRejectTask}
+        isChiefOfPolice={isChiefOfPolice}
       />
 
       {/* Toast Notification Alert Banner */}

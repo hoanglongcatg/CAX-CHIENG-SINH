@@ -1,5 +1,5 @@
 export type TaskPriority = 'normal' | 'important' | 'urgent' | 'critical';
-export type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'on_hold' | 'overdue';
+export type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'on_hold' | 'overdue' | 'pending_approval';
 
 export interface Department {
   id: string;
@@ -44,6 +44,12 @@ export interface Task {
   updatedAt: string;
   completedAt?: string;
   tags?: string[];
+  // Quản lý phê duyệt hoàn thành sớm của Trưởng Công an xã
+  approvalStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  isEarlyCompletion?: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+  approvalNote?: string;
 }
 
 export interface NotificationItem {
@@ -54,7 +60,7 @@ export interface NotificationItem {
   recipientType: 'officer' | 'department';
   recipientName: string;
   recipientEmail: string;
-  type: 'assignment' | 'reminder' | 'overdue_warning' | 'completed' | 'progress_update';
+  type: 'assignment' | 'reminder' | 'overdue_warning' | 'completed' | 'progress_update' | 'approval_request' | 'approval_result';
   title: string;
   content: string;
   sentAt: string;
@@ -71,6 +77,8 @@ export interface TaskStats {
   todo: number;
   onHold: number;
   overdue: number;
+  pendingApproval: number; // Chờ Trưởng CAX phê duyệt hoàn thành sớm
+  earlyCompleted: number;  // Số việc đã hoàn thành sớm
   dueSoon: number; // Trong vòng 48h
   completionRate: number; // %
   overdueRate: number;    // %
