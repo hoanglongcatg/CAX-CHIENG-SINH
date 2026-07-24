@@ -96,7 +96,11 @@ export async function sendTaskToGoogleSheets(taskData: Partial<Task>): Promise<b
  */
 export async function fetchTasksFromGoogleSheets(): Promise<Task[] | null> {
   try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+    const fetchUrl = GOOGLE_SHEETS_SCRIPT_URL.includes('?') 
+      ? `${GOOGLE_SHEETS_SCRIPT_URL}&t=${Date.now()}` 
+      : `${GOOGLE_SHEETS_SCRIPT_URL}?t=${Date.now()}`;
+
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'

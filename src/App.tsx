@@ -86,12 +86,11 @@ export default function App() {
   const fetchAndSyncTasks = React.useCallback(async () => {
     const sheetTasks = await fetchTasksFromGoogleSheets();
     if (sheetTasks && sheetTasks.length > 0) {
-      // Prioritize Google Sheets data over old local storage data for matching tasks
-      const localTasks = loadTasks();
-      const cleanTasks = deduplicateTasksList([...localTasks, ...sheetTasks]);
+      // Completely overwrite state and LocalStorage with Google Sheets data
+      const cleanTasks = deduplicateTasksList(sheetTasks);
       setTasks(cleanTasks);
       saveTasks(cleanTasks);
-      console.log('✅ [App] Đã đồng bộ thành công danh sách công việc từ Google Sheets');
+      console.log('✅ [App] Đã ghi đè và đồng bộ thành công danh sách công việc từ Google Sheets');
     }
   }, []);
 
